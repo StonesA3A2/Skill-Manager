@@ -13,7 +13,10 @@
 </p>
 
 <p align="center">
-  <a href="./README.zh-CN.md">中文说明</a>
+  <b>English</b> &nbsp;·&nbsp;
+  <a href="./README.de.md">Deutsch</a> &nbsp;·&nbsp;
+  <a href="./README.zh-CN.md">简体中文</a> &nbsp;·&nbsp;
+  <a href="./README.zh-TW.md">繁體中文</a>
 </p>
 
 <p align="center">

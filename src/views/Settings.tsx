@@ -1456,27 +1456,22 @@ export function Settings() {
               <div className="min-w-0 flex-1">
                 <h3 className="text-[14px] font-semibold text-primary">{t("settings.language")}</h3>
               </div>
-              <div className="app-segmented flex-wrap bg-background">
+              <select
+                value={i18n.language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className={`${fieldClass} w-auto min-w-[160px]`}
+              >
                 {([
-                  { value: "zh", label: "简体中文" },
-                  { value: "zh-TW", label: "繁體中文" },
                   { value: "en", label: "English" },
                   { value: "de", label: "Deutsch" },
+                  { value: "zh", label: "简体中文" },
+                  { value: "zh-TW", label: "繁體中文" },
                 ] as const).map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => handleLanguageChange(opt.value)}
-                    className={cn(
-                      segmentedButtonClass,
-                      i18n.language === opt.value
-                        ? "bg-surface-active text-secondary"
-                        : "text-muted hover:text-tertiary"
-                    )}
-                  >
+                  <option key={opt.value} value={opt.value}>
                     {opt.label}
-                  </button>
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* Close action */}
