@@ -73,6 +73,16 @@
 - **Tags dienen der Gruppierung und Filterung** — Mit Tags ähnliche Skills beschriften, dann nach Tag filtern, um die gewünschte Untermenge schnell zu finden.
 - **Stapelsteuerung funktioniert überall** — Mehrfachauswahl von Skills in jedem Arbeitsbereich für Massenoperationen.
 
+## Der zentrale Repository-Pfad (lies das, falls du verwirrt bist)
+
+**Einstellungen → Globale Konfiguration → Zentraler Repository-Pfad** ist ein ganz normaler lokaler Ordner auf deinem eigenen Computer (Standard: `~/.skills-manager`), in dem die App deine Skill-Dateien, ihre SQLite-Datenbank und den Cache speichert. Er heißt nur deshalb "Repository", weil er für die Sicherungsfunktion optional in ein Git-Repository verwandelt werden kann — **er ist nicht der Quellcode dieser App oder ihr GitHub-Repository und hat damit nichts zu tun.** Es wird nichts von GitHub heruntergeladen oder hineingeklont. Diesen Pfad zu ändern verschiebt lediglich, wo deine lokale Skill-Bibliothek auf der Festplatte liegt.
+
+Die Zeile hat drei separate Bedienelemente, die jeweils etwas anderes tun:
+
+- **Verzeichnis ändern** (Stift-Symbol) — öffnet ein Textfeld. Auf das Ordner-Symbol daneben klicken öffnet den nativen Ordner-Auswahldialog des Betriebssystems (mit dem gewohnten "Ordner auswählen"/OK-Button), oder einen Pfad direkt eintippen, dann auf den Haken zum Speichern klicken. Eine Pfadänderung verschiebt deine bestehende Bibliothek dorthin und erfordert einen Neustart der App zum Abschluss (die App bietet dafür einen Neustart-Button an).
+- **Auf Standard zurücksetzen** (nur sichtbar, sobald ein benutzerdefinierter Pfad aktiv ist) — setzt wieder auf `~/.skills-manager` zurück.
+- **Aktuellen Ordner anzeigen** — öffnet nur den *aktuellen* Pfad im Datei-Explorer/Finder zum Ansehen. Das ist eine reine Anzeige-Aktion, kein Auswahldialog — deshalb fehlt dort bewusst ein OK-Button, denn hier wird nichts ausgewählt.
+
 ## Schnellstart
 
 1. Skills aus lokalen Ordnern, Git-Repositories, Archiven oder dem Marktplatz installieren.

@@ -73,6 +73,16 @@
 - **Tags are for grouping and filtering** — Use tags to label similar skills, then filter by tag to find the subset you want quickly.
 - **Batch control works everywhere** — Multi-select skills in any workspace for bulk operations.
 
+## The Central Repository Path (read this if you're confused)
+
+**Settings → Global Configuration → Central Repository Path** is a plain local folder on your own computer (default: `~/.skills-manager`) where the app stores your skill files, its SQLite database, and cache. It is called a "repository" only because it can optionally be turned into a Git repository for the Backup feature — **it is not, and has nothing to do with, this app's own source code or its GitHub repository.** Nothing is downloaded or cloned into it from GitHub. Changing this path just moves where your local skill library lives on disk.
+
+The row has three separate controls, each doing something different:
+
+- **Change Directory** (pencil icon) — opens an inline text field. Click the folder icon next to it to get the OS's native folder picker (the one with the usual "Select Folder" / OK button), or type a path directly, then click the checkmark to save. Changing this path moves your existing library there and requires an app restart to finish (the app will offer a restart button).
+- **Reset to Default** (only shown once you have a custom path) — puts it back to `~/.skills-manager`.
+- **Show Current Folder** — just opens the *current* path in File Explorer/Finder so you can look at what's inside. This is a one-way "reveal" action, not a picker — there's no OK button because you aren't selecting anything here.
+
 ## Quick Start
 
 1. Install skills from local folders, Git repositories, archives, or the marketplace.
