@@ -16,7 +16,7 @@ const API_BASE: &str = "https://api.github.com";
 /// Public OAuth App client id for the GitHub Device Flow (backup redesign
 /// §3.2). Client ids are not secrets — shipping one in an open-source app is
 /// the standard device-flow setup; there is deliberately no client secret.
-pub const OAUTH_CLIENT_ID: &str = "Ov23li4a3SMdhIiKo7IE";
+pub const OAUTH_CLIENT_ID: &str = "Ov23lifQSwuiLR752bhi";
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct GithubConnectInfo {
