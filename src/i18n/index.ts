@@ -5,9 +5,15 @@ import zh from "./zh.json";
 import zhTW from "./zh-TW.json";
 import en from "./en.json";
 import de from "./de.json";
+import es from "./es.json";
+import fr from "./fr.json";
+import hu from "./hu.json";
+import pt from "./pt.json";
+import nl from "./nl.json";
+import it from "./it.json";
 
 const LANGUAGE_STORAGE_KEY = "language";
-const SUPPORTED_LANGUAGES = ["zh", "zh-TW", "en", "de"] as const;
+const SUPPORTED_LANGUAGES = ["zh", "zh-TW", "en", "de", "es", "fr", "hu", "pt", "nl", "it"] as const;
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 function isSupportedLanguage(lang: string | null): lang is SupportedLanguage {
@@ -34,6 +40,12 @@ export const i18nReady = (async () => {
       "zh-TW": { translation: zhTW },
       en: { translation: en },
       de: { translation: de },
+      es: { translation: es },
+      fr: { translation: fr },
+      hu: { translation: hu },
+      pt: { translation: pt },
+      nl: { translation: nl },
+      it: { translation: it },
     },
     lng,
     fallbackLng: "zh",

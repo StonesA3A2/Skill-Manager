@@ -1464,6 +1464,12 @@ export function Settings() {
                 {([
                   { value: "en", label: "English" },
                   { value: "de", label: "Deutsch" },
+                  { value: "es", label: "Español" },
+                  { value: "fr", label: "Français" },
+                  { value: "it", label: "Italiano" },
+                  { value: "nl", label: "Nederlands" },
+                  { value: "pt", label: "Português" },
+                  { value: "hu", label: "Magyar" },
                   { value: "zh", label: "简体中文" },
                   { value: "zh-TW", label: "繁體中文" },
                 ] as const).map((opt) => (
