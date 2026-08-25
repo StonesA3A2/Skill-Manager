@@ -9,21 +9,11 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://skillsmanager.dev/zh">skillsmanager.dev</a></strong>
-</p>
-
-<p align="center">
-  🎬 <a href="https://www.bilibili.com/video/BV1845F6REUu/">视频介绍（Bilibili）</a>
-  &nbsp;·&nbsp;
-  <a href="https://www.youtube.com/watch?v=wfbCrfNASVU">Video intro (YouTube)</a>
+  <strong><a href="https://github.com/StonesA3A2/Skill-Manager">github.com/StonesA3A2/Skill-Manager</a></strong>
 </p>
 
 <p align="center">
   <a href="./README.md">English</a>
-</p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/23290?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-23290" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/23290" alt="xingkongliang%2Fskills-manager | Trendshift" width="250" height="55"/></a>
 </p>
 
 <p align="center">
@@ -244,14 +234,6 @@ npm run cli:build
   如果 `.app` 不在 `/Applications`，请替换为实际路径。
 
 升级到公证版本时，应用的代码签名发生了变化，macOS 可能会再问一次是否允许读取 `skills-manager-git-backup` 钥匙串条目。点 **始终允许** 即可——从 v1.29.0 起签名身份保持稳定，之后的更新应该不会再问。
-
-## Star 增长
-
-<p align="center">
-  <a href="https://github.com/xingkongliang/star-history-svg">
-    <img src="assets/star-history.svg" width="800" alt="xingkongliang/skills-manager 的 Star History 图" />
-  </a>
-</p>
 
 ## License
 

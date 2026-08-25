@@ -205,7 +205,7 @@ export function Settings() {
   const [showMoreAgents, setShowMoreAgents] = useState(false);
 
   const GITHUB_URL = "https://github.com/StonesA3A2/Skill-Manager";
-  const WEBSITE_URL = "https://skillsmanager.dev";
+  const WEBSITE_URL = "https://github.com/StonesA3A2/Skill-Manager";
 
   const startEditPath = useCallback((key: string, currentPath: string) => {
     setEditingPathKey(key);
