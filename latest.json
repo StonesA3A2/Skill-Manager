@@ -1,11 +1,11 @@
 {
-  "version": "1.34.2",
-  "notes": "Deutsche Übersetzung + Restart-Button für Repo-Pfad-Migration",
-  "pub_date": "2026-08-25T12:29:05Z",
+  "version": "0.3.0",
+  "notes": "Eigene GitHub OAuth-App, neues Logo, README auf 4 Sprachen, Sprachauswahl als Dropdown.",
+  "pub_date": "2026-08-25T13:42:07Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYlI2dzIwR3ZRNGxaUlh0UDV5YXZ2YmhxZE9rREN5T3krUUR5UklycHRUTkFaSzlYZ0RzNFpBcXhZNlBhcG0yRU5HRkpnRUxDWXlLNVgrLy9ONGkwS3lwNE9hQUMreEFnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3NjYwOTIxCWZpbGU6c2tpbGxzLW1hbmFnZXJfMS4zNC4yX3g2NC1zZXR1cC5leGUKRi9Eb0xZYjZDdDlOTXpDL0ZuWERSMkIwR2xEeEN1UDF0dXhDcTBaOUJYMXRDTUllcDRVY3B4anJEazJZNHd1MUxqNlgzVnUxNlJnKysycnQ4NjNpQmc9PQo=",
-      "url": "https://github.com/StonesA3A2/Skill-Manager/releases/download/v1.34.2/skills-manager_1.34.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYlI2dzIwR3ZRNHNld2w4RS84NjJYRkp6MURxb0ZUdUV3WEZITEVESm5TSHp0cHBvMXhjNW8veUtyT200dzJTdHYxbGl4OW85S29USkNsMDU3a1dKYVVXbHdJb3pWbGdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3NjY1MzExCWZpbGU6c2tpbGxzLW1hbmFnZXJfMC4zLjBfeDY0LXNldHVwLmV4ZQpvcUNqV1dpeUI4aVNqYmpMdThmTUFteHFoNEZhUmFjdWZXanBvN1RVTERhZTBYWVhtakltOXJnYU5FL21HdlI0RW1EaWtFRGlsT0dmT0RUV0lYMnVBQT09Cg==",
+      "url": "https://github.com/StonesA3A2/Skill-Manager/releases/download/v0.3.0/skills-manager_0.3.0_x64-setup.exe"
     }
   }
 }
