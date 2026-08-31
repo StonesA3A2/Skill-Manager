@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "skills-manager",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "identifier": "com.agentskills.desktop",
   "build": {
     "frontendDist": "../dist",
@@ -30,7 +30,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUyRDA2QkQwMzZBQzQ3MUIKUldRYlI2dzIwR3ZRNG5LWndhRUxTN2QxRDJSOHVRYWM3UmVpS1NOOVcxYlhBOGVCWFA2YUNBNFEK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZFQjM3QUZGRjYzQTgzMTAKUldRUWd6cjIvM3F6YnJWTUdkS01kZVZFZUxXWmtNZ0lsTFVzbjFTU3IxMjdjRis4ZjhVRGt0aWIK",
       "endpoints": [
         "https://github.com/StonesA3A2/Skill-Manager/releases/latest/download/latest.json"
       ]

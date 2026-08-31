@@ -13,7 +13,9 @@
     "newPreset": "新建 Preset",
     "projects": "项目工作区",
     "addProject": "关联项目",
-    "settings": "设置"
+    "settings": "设置",
+    "mcpServers": "MCP 服务器",
+    "plugins": "插件"
   },
   "help": {
     "eyebrow": "操作指南",
@@ -30,11 +32,11 @@
       },
       "install": {
         "title": "安装 Skills",
-        "description": "从本地目录、Git 仓库、压缩包或市场导入。支持批量导入文件夹中的多个 Skill。"
+        "description": "从本地目录、Git 仓库、压缩包或市场导入。支持批量导入文件夹中的多个 Skill。 “Git 安装”标签页列出你从 Git 仓库安装的所有技能，按仓库分组（附添加日期），可按仓库折叠——在此选择并删除；“已安装”徽章标记实际在使用中的技能（在某个预设中，或已部署到某个代理）。"
       },
       "sync": {
         "title": "技能库",
-        "description": "浏览所有已安装 Skills，支持批量标签编辑和按 Agent 同步开关。可按来源或标签过滤，新增的「未标签」过滤项可快速定位漏打标签的 Skills。点击卡片上的 Agent 图标可一键为该 Agent 安装或移除该 Skill；卡片上始终显示的删除按钮可从中央库整体删除该 Skill。点击卡片本身查看文档、版本历史和 Agent 同步详情。"
+        "description": "浏览所有已安装 Skills，支持批量标签编辑和按 Agent 同步开关。可按来源或标签过滤，新增的「未标签」过滤项可快速定位漏打标签的 Skills。点击卡片上的 Agent 图标可一键为该 Agent 安装或移除该 Skill；卡片上始终显示的删除按钮可从中央库整体删除该 Skill。点击卡片本身查看文档、版本历史和 Agent 同步详情。 使用顶部的“独立技能”/“插件技能”切换开关，可在常规技能库和当前已启用插件所包含技能的只读视图之间切换。"
       },
       "global": {
         "title": "全局工作区",
@@ -51,6 +53,14 @@
       "settings": {
         "title": "设置",
         "description": "管理 Agent 路径与开关、自定义 Agent、拖拽调整 Agent 在全应用中的显示顺序、同步模式、主题字号、语言、网络代理、Git 远程、AI 搜索 Key，以及应用更新。可用「导出日志」把最近日志与安装/移除/更新/同步活动打包成压缩文件，方便提交 Issue。"
+      },
+      "mcp": {
+        "title": "MCP 服务器",
+        "description": "添加一个 Model Context Protocol 服务器（名称、命令、参数、可选的环境变量），点击代理徽章即可在该代理上部署或移除它。部署只会写入这一个服务器在该代理自身 MCP 配置文件中的条目——文件中已有的其他条目（无论来自该代理还是其他工具）都不会被触碰，并且每次写入前都会创建带时间戳的备份。当前支持：Claude Code、Cursor、Windsurf 和 Claude Desktop。"
+      },
+      "plugins": {
+        "title": "插件",
+        "description": "通过市场密钥、市场 Git URL 和插件 ID 添加一个 Claude Code 插件，然后点击代理徽章在该代理上启用或禁用它——这会注册市场并在该代理自身的设置文件中切换插件状态，与 Claude Code 自带的 /plugin 命令方式相同。点击插件旁的箭头可加载并列出其中包含的技能。启用/未启用徽章显示该插件当前是否至少在一个代理上启用。"
       }
     }
   },
@@ -440,13 +450,19 @@
       "clickToRemove": "点击标记为移除",
       "undoRemove": "点击保留此标签"
     },
-    "batchHeldBack": "有 {{count}} 个 skill 未更新——更新会删除文件（{{names}}）。逐个更新可以看到具体是哪些。"
+    "batchHeldBack": "有 {{count}} 个 skill 未更新——更新会删除文件（{{names}}）。逐个更新可以看到具体是哪些。",
+    "pluginSkills": {
+      "soloTab": "独立技能",
+      "pluginTab": "插件技能",
+      "noActivePlugins": "没有已启用的插件。请在“插件”页面启用一个插件，即可在此查看其包含的技能。",
+      "count": "{{count}} 个技能"
+    }
   },
   "install": {
     "title": "安装 Skills",
     "browseMarket": "浏览榜单",
     "localInstall": "本地安装",
-    "gitInstall": "Git 安装",
+    "gitInstall": "Git 安装项",
     "hot": "热门",
     "trending": "趋势",
     "all": "全部",
@@ -540,6 +556,20 @@
         "pending": "待导入",
         "imported": "已导入"
       }
+    },
+    "gitManaged": {
+      "title": "从 Git 安装的",
+      "summary": "{{repoCount}} 个仓库，共 {{skillCount}} 个技能。",
+      "addedOn": "添加于 {{date}}",
+      "installed": "已安装",
+      "selectAll": "全选",
+      "deselectAll": "取消全选",
+      "deleteSelected": "删除（{{count}}）",
+      "update": "更新",
+      "updated": "技能已更新。",
+      "remove": "移除",
+      "deleted": "已删除 {{count}} 个技能。",
+      "deleteConfirm": "永久删除选中的 {{count}} 个技能？将移除其中央库文件、预设关联和已同步的代理目标。"
     }
   },
   "settings": {
@@ -622,7 +652,7 @@
     "help": "帮助",
     "website": "官网",
     "about": "关于",
-    "version": "Skills Manager 0.4.0",
+    "version": "Skills Manager 0.5.0",
     "tagline": "跨平台。极简、高效、无感多 Preset 切换。",
     "checkUpdate": "检查更新",
     "checking": "检查中…",
@@ -757,7 +787,8 @@
     "trayIconDesc": "在系统托盘中显示图标，便于快速执行显示和退出操作。",
     "trayIcon_on": "显示",
     "trayIcon_off": "隐藏",
-    "trayIconOffHint": "托盘图标已隐藏，关闭窗口时将直接退出应用。"
+    "trayIconOffHint": "托盘图标已隐藏，关闭窗口时将直接退出应用。",
+    "repoPathHelpHint": "这是什么？打开帮助指南查看说明。"
   },
   "closeAction": {
     "title": "关闭行为",
@@ -1063,6 +1094,65 @@
         "centerNewer": "中心有变更",
         "diverged": "冲突"
       }
+    }
+  },
+  "mcp": {
+    "title": "MCP 服务器",
+    "subtitle": "管理 Model Context Protocol 服务器，以及它们部署到了哪些代理。",
+    "addServer": "添加服务器",
+    "empty": "还没有 MCP 服务器。添加一个以便你的代理使用。",
+    "edit": "编辑",
+    "remove": "移除",
+    "deleted": "MCP 服务器已删除。",
+    "deleteConfirm": "永久删除「{{name}}」？将从其部署到的每个代理中移除。",
+    "tool": {
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "windsurf": "Windsurf",
+      "claudeDesktop": "Claude Desktop"
+    },
+    "form": {
+      "addTitle": "添加 MCP 服务器",
+      "editTitle": "编辑 MCP 服务器",
+      "name": "名称",
+      "namePlaceholder": "例如 filesystem",
+      "command": "命令",
+      "commandPlaceholder": "例如 npx",
+      "args": "参数（每行一个）",
+      "argsPlaceholder": "-y\n@modelcontextprotocol/server-filesystem",
+      "env": "环境变量（KEY=VALUE，每行一个）",
+      "envPlaceholder": "API_KEY=...",
+      "enabled": "已启用",
+      "validationError": "名称和命令为必填项。",
+      "created": "MCP 服务器已创建。",
+      "updated": "MCP 服务器已更新。"
+    }
+  },
+  "plugins": {
+    "title": "插件",
+    "subtitle": "管理市场插件，以及它们为哪些代理启用。",
+    "addPlugin": "添加插件",
+    "empty": "还没有插件。添加一个以便你的代理使用。",
+    "showSkills": "显示此插件中的技能",
+    "active": "已启用",
+    "inactive": "未启用",
+    "loadingSkills": "正在加载技能…",
+    "noSkillsFound": "在此插件的源中未找到技能。",
+    "remove": "移除",
+    "deleted": "插件已删除。",
+    "deleteConfirm": "永久移除「{{name}}」？将在其部署到的每个代理中禁用它。",
+    "form": {
+      "addTitle": "添加插件",
+      "marketplaceKey": "市场密钥",
+      "marketplaceKeyPlaceholder": "例如 ecc",
+      "marketplaceUrl": "市场 URL",
+      "marketplaceUrlPlaceholder": "https://github.com/user/repo.git",
+      "pluginId": "插件 ID",
+      "pluginIdPlaceholder": "例如 ecc",
+      "name": "显示名称（可选）",
+      "namePlaceholder": "例如 ECC Tools",
+      "validationError": "市场密钥、市场 URL 和插件 ID 均为必填项。",
+      "created": "插件已添加。"
     }
   }
 }

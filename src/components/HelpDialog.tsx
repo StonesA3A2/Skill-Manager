@@ -1,12 +1,36 @@
-import { BookOpen, FolderTree, Globe, Layers3, Map, RefreshCw, Settings2, Sparkles, X } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { BookOpen, FolderTree, Globe, Layers3, Map, RefreshCw, Settings2, Sparkles, Plug, Blocks, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../context/AppContext";
+import { cn } from "../utils";
 
-const GUIDE_ICONS = [Map, Layers3, BookOpen, Sparkles, Globe, FolderTree, RefreshCw, Settings2];
+const GUIDE_KEYS = [
+  "workflows",
+  "presets",
+  "install",
+  "sync",
+  "global",
+  "projects",
+  "backup",
+  "mcp",
+  "plugins",
+  "settings",
+] as const;
+const GUIDE_ICONS = [Map, Layers3, BookOpen, Sparkles, Globe, FolderTree, RefreshCw, Plug, Blocks, Settings2];
 
 export function HelpDialog() {
   const { t } = useTranslation();
-  const { helpOpen, closeHelp } = useApp();
+  const { helpOpen, helpSection, closeHelp } = useApp();
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (!helpOpen || !helpSection) return;
+    // Wait a frame so the dialog has mounted/laid out before scrolling.
+    const id = requestAnimationFrame(() => {
+      sectionRefs.current[helpSection]?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [helpOpen, helpSection]);
 
   if (!helpOpen) return null;
 
@@ -34,19 +58,27 @@ export function HelpDialog() {
         </div>
 
         <div className="max-h-[min(72vh,720px)] space-y-3 overflow-y-auto px-5 py-5">
-          {(["workflows", "presets", "install", "sync", "global", "projects", "backup", "settings"] as const).map((key, index) => {
+          {GUIDE_KEYS.map((key, index) => {
             const Icon = GUIDE_ICONS[index];
             return (
               <div
                 key={key}
-                className="flex items-start gap-3 rounded-2xl border border-border-subtle bg-surface px-4 py-3"
+                ref={(el) => { sectionRefs.current[key] = el; }}
+                className={cn(
+                  "flex items-start gap-3 rounded-2xl border px-4 py-3 transition-colors",
+                  helpSection === key
+                    ? "border-accent bg-accent-bg"
+                    : "border-border-subtle bg-surface"
+                )}
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background text-accent">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
                   <h3 className="text-[13px] font-semibold text-secondary">{t(`help.items.${key}.title`)}</h3>
-                  <p className="mt-1 text-[13px] leading-5 text-muted">{t(`help.items.${key}.description`)}</p>
+                  <p className="mt-1 whitespace-pre-line text-[13px] leading-5 text-muted">
+                    {t(`help.items.${key}.description`)}
+                  </p>
                 </div>
               </div>
             );

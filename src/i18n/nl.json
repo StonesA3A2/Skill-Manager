@@ -13,7 +13,9 @@
     "newPreset": "Nieuw preset",
     "projects": "Projectwerkruimtes",
     "addProject": "Project koppelen",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "mcpServers": "MCP-servers",
+    "plugins": "Plugins"
   },
   "help": {
     "eyebrow": "Handleiding",
@@ -30,11 +32,11 @@
       },
       "install": {
         "title": "Skills installeren",
-        "description": "Importeer vanuit lokale mappen, Git-repositories, archieven of de marktplaats. Importeer meerdere skills tegelijk uit een map met batchimport."
+        "description": "Importeer vanuit lokale mappen, Git-repositories, archieven of de marktplaats. Importeer meerdere skills tegelijk uit een map met batchimport. Het tabblad \"Git-installaties\" toont elke skill die je vanuit een Git-repository hebt geïnstalleerd, gegroepeerd per repository (met de datum waarop je hem toevoegde) en per repository inklapbaar — selecteer en verwijder ze daar, en een \"Geïnstalleerd\"-badge markeert de skills die daadwerkelijk in gebruik zijn (in een preset, of geïmplementeerd op een agent)."
       },
       "sync": {
         "title": "Bibliotheek",
-        "description": "Blader door alle geïnstalleerde skills met bulkbewerking van tags en per-agent syncschakelaars. Filter op bron of tag — inclusief een pil \"Zonder tag\" om skills zonder label te vinden. Klik op een agentpictogram op een skillkaart om die skill voor die agent met één klik te installeren of te verwijderen; de altijd zichtbare verwijderknop verwijdert een skill uit de centrale bibliotheek. Klik op de kaart zelf voor documentatie, versiegeschiedenis en syncdetails per agent."
+        "description": "Blader door alle geïnstalleerde skills met bulkbewerking van tags en per-agent syncschakelaars. Filter op bron of tag — inclusief een pil \"Zonder tag\" om skills zonder label te vinden. Klik op een agentpictogram op een skillkaart om die skill voor die agent met één klik te installeren of te verwijderen; de altijd zichtbare verwijderknop verwijdert een skill uit de centrale bibliotheek. Klik op de kaart zelf voor documentatie, versiegeschiedenis en syncdetails per agent. Gebruik de schakelaar \"Losse skills\" / \"Plugin-skills\" bovenaan om te wisselen tussen je gewone bibliotheek en een alleen-lezen weergave van de skills die zijn gebundeld in je momenteel actieve plugins."
       },
       "global": {
         "title": "Globale Werkruimte",
@@ -51,6 +53,14 @@
       "settings": {
         "title": "Instellingen",
         "description": "Beheer agentpaden en schakelaars, voeg aangepaste agenten toe, sleep om de volgorde van agenten in de app te wijzigen, wijzig syncmodus, thema, tekstgrootte, taal, proxy, Git-remote, AI-zoeksleutel, en controleer op app-updates. Gebruik Logs exporteren om recente logs en installatie-/verwijder-/update-/syncactiviteit te bundelen in één zip bij het melden van een probleem."
+      },
+      "mcp": {
+        "title": "MCP-servers",
+        "description": "Voeg een Model Context Protocol-server toe (naam, opdracht, argumenten, optionele omgevingsvariabelen) en klik op het badge van een agent om deze daar te implementeren of te verwijderen. Implementeren schrijft alleen de invoer van die ene server naar het eigen MCP-configuratiebestand van de agent — elke andere invoer die daar al staat, van die agent of een andere tool, blijft ongemoeid, en er wordt telkens vóór het schrijven een back-up met tijdstempel gemaakt. Momenteel ondersteund: Claude Code, Cursor, Windsurf en Claude Desktop."
+      },
+      "plugins": {
+        "title": "Plugins",
+        "description": "Voeg een Claude Code-plugin toe via de marketplace-sleutel, de Git-URL van de marketplace en de plugin-ID, en klik dan op het badge van een agent om de plugin daar in of uit te schakelen — dit registreert de marketplace en schakelt de plugin om in het eigen instellingenbestand van de agent, net zoals Claude Code's eigen /plugin-opdracht dat zou doen. Klik op de pijl naast een plugin om de daarin gebundelde skills te laden en weer te geven. Het Actief/Inactief-badge toont of de plugin momenteel voor minstens één agent is ingeschakeld."
       }
     }
   },
@@ -440,13 +450,19 @@
       "clickToRemove": "Klik om te markeren voor verwijdering",
       "undoRemove": "Klik om deze tag te behouden"
     },
-    "batchHeldBack": "{{count}} skill(s) zijn ongemoeid gelaten — bijwerken zou bestanden verwijderen ({{names}}). Werk ze één voor één bij om te zien welke."
+    "batchHeldBack": "{{count}} skill(s) zijn ongemoeid gelaten — bijwerken zou bestanden verwijderen ({{names}}). Werk ze één voor één bij om te zien welke.",
+    "pluginSkills": {
+      "soloTab": "Losse skills",
+      "pluginTab": "Plugin-skills",
+      "noActivePlugins": "Geen actieve plugins. Schakel een plugin in op de Plugins-pagina om hier de bijbehorende skills te zien.",
+      "count": "{{count}} skill(s)"
+    }
   },
   "install": {
     "title": "Skills installeren",
     "browseMarket": "Ranglijst",
     "localInstall": "Lokale installatie",
-    "gitInstall": "Git-installatie",
+    "gitInstall": "Git-installaties",
     "hot": "Populair",
     "trending": "Trending",
     "all": "Aller tijden",
@@ -540,6 +556,20 @@
         "pending": "In behandeling",
         "imported": "Geïmporteerd"
       }
+    },
+    "gitManaged": {
+      "title": "Geïnstalleerd vanuit Git",
+      "summary": "{{repoCount}} repo('s), {{skillCount}} skill(s) in totaal.",
+      "addedOn": "Toegevoegd op {{date}}",
+      "installed": "Geïnstalleerd",
+      "selectAll": "Alles selecteren",
+      "deselectAll": "Selectie opheffen",
+      "deleteSelected": "Verwijderen ({{count}})",
+      "update": "Bijwerken",
+      "updated": "Skill bijgewerkt.",
+      "remove": "Verwijderen",
+      "deleted": "{{count}} skill(s) verwijderd.",
+      "deleteConfirm": "{{count}} geselecteerde skill(s) permanent verwijderen? Dit verwijdert hun centrale bibliotheekbestanden, presetkoppelingen en gesynchroniseerde agentdoelen."
     }
   },
   "settings": {
@@ -757,7 +787,8 @@
     "trayIconDesc": "Toon een pictogram in het systeemvak voor snelle acties Tonen en Afsluiten.",
     "trayIcon_on": "Tonen",
     "trayIcon_off": "Verbergen",
-    "trayIconOffHint": "Systeemvakpictogram is verborgen, dus het sluiten van het venster sluit de app af."
+    "trayIconOffHint": "Systeemvakpictogram is verborgen, dus het sluiten van het venster sluit de app af.",
+    "repoPathHelpHint": "Wat is dit? Open de hulpgids voor uitleg."
   },
   "closeAction": {
     "title": "Sluitgedrag",
@@ -1063,6 +1094,65 @@
         "centerNewer": "Center gewijzigd",
         "diverged": "Conflict"
       }
+    }
+  },
+  "mcp": {
+    "title": "MCP-servers",
+    "subtitle": "Beheer Model Context Protocol-servers en op welke agents ze zijn geïmplementeerd.",
+    "addServer": "Server toevoegen",
+    "empty": "Nog geen MCP-servers. Voeg er een toe om beschikbaar te maken voor je agents.",
+    "edit": "Bewerken",
+    "remove": "Verwijderen",
+    "deleted": "MCP-server verwijderd.",
+    "deleteConfirm": "\"{{name}}\" permanent verwijderen? Dit verwijdert de server uit elke agent waarop hij is geïmplementeerd.",
+    "tool": {
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "windsurf": "Windsurf",
+      "claudeDesktop": "Claude Desktop"
+    },
+    "form": {
+      "addTitle": "MCP-server toevoegen",
+      "editTitle": "MCP-server bewerken",
+      "name": "Naam",
+      "namePlaceholder": "bijv. filesystem",
+      "command": "Opdracht",
+      "commandPlaceholder": "bijv. npx",
+      "args": "Argumenten (één per regel)",
+      "argsPlaceholder": "-y\n@modelcontextprotocol/server-filesystem",
+      "env": "Omgevingsvariabelen (SLEUTEL=WAARDE, één per regel)",
+      "envPlaceholder": "API_KEY=...",
+      "enabled": "Ingeschakeld",
+      "validationError": "Naam en opdracht zijn verplicht.",
+      "created": "MCP-server aangemaakt.",
+      "updated": "MCP-server bijgewerkt."
+    }
+  },
+  "plugins": {
+    "title": "Plugins",
+    "subtitle": "Beheer marketplace-plugins en voor welke agents ze zijn ingeschakeld.",
+    "addPlugin": "Plugin toevoegen",
+    "empty": "Nog geen plugins. Voeg er een toe om beschikbaar te maken voor je agents.",
+    "showSkills": "Skills in deze plugin tonen",
+    "active": "Actief",
+    "inactive": "Inactief",
+    "loadingSkills": "Skills laden…",
+    "noSkillsFound": "Geen skills gevonden in de bron van deze plugin.",
+    "remove": "Verwijderen",
+    "deleted": "Plugin verwijderd.",
+    "deleteConfirm": "\"{{name}}\" permanent verwijderen? Dit schakelt de plugin uit op elke agent waarop hij is geïmplementeerd.",
+    "form": {
+      "addTitle": "Plugin toevoegen",
+      "marketplaceKey": "Marketplace-sleutel",
+      "marketplaceKeyPlaceholder": "bijv. ecc",
+      "marketplaceUrl": "Marketplace-URL",
+      "marketplaceUrlPlaceholder": "https://github.com/user/repo.git",
+      "pluginId": "Plugin-ID",
+      "pluginIdPlaceholder": "bijv. ecc",
+      "name": "Weergavenaam (optioneel)",
+      "namePlaceholder": "bijv. ECC Tools",
+      "validationError": "Marketplace-sleutel, marketplace-URL en plugin-ID zijn allemaal verplicht.",
+      "created": "Plugin toegevoegd."
     }
   }
 }

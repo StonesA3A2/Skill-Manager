@@ -17,11 +17,13 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Search,
   X,
   MoreHorizontal,
   Pencil,
   Calendar,
+  Trash2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -34,6 +36,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
 import { StatusBanner } from "../components/StatusBanner";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { getErrorMessage, getErrorKind } from "../lib/error";
 
 const MARKET_PAGE_SIZE = 24;
@@ -63,6 +66,11 @@ export function InstallSkills() {
   const [gitLoading, setGitLoading] = useState(false);
   const [gitCancelKey, setGitCancelKey] = useState<string | null>(null);
   const [gitPreview, setGitPreview] = useState<GitPreviewResult | null>(null);
+  const [gitManageSelected, setGitManageSelected] = useState<Set<string>>(new Set());
+  // Absence from this set means "expanded" — repos start open, collapsing is opt-in.
+  const [collapsedGitRepos, setCollapsedGitRepos] = useState<Set<string>>(new Set());
+  const [gitManageDeleteOpen, setGitManageDeleteOpen] = useState(false);
+  const [gitManageUpdatingIds, setGitManageUpdatingIds] = useState<Set<string>>(new Set());
   const [gitPreviewRepoUrl, setGitPreviewRepoUrl] = useState<string | null>(null);
   const [gitSelections, setGitSelections] = useState<{ rel_path: string; name: string; description: string | null; selected: boolean }[]>([]);
   const [gitConfirmLoading, setGitConfirmLoading] = useState(false);
@@ -132,6 +140,98 @@ export function InstallSkills() {
       marketSearchCacheRef.current.delete(key);
     }
   }, []);
+
+  const gitInstalledSkills = useMemo(
+    () => managedSkills.filter((s) => s.source_type === "git"),
+    [managedSkills]
+  );
+
+  // "Installed" here means actually in use (preset membership or a live
+  // deploy target), not merely present in the library — see the
+  // gitManaged.installed badge below.
+  const isSkillInUse = useCallback(
+    (skill: (typeof gitInstalledSkills)[number]) =>
+      skill.preset_ids.length > 0 || skill.targets.some((tgt) => tgt.status === "ok"),
+    []
+  );
+
+  // One repo can supply several skills (the git-install preview lets you pick
+  // multiple at once), so group by source_ref instead of listing skills flat —
+  // matches how the user actually thinks about "repos I've installed from".
+  const gitRepoGroups = useMemo(() => {
+    const groups = new Map<string, { repoUrl: string; repoName: string; addedAt: number; skills: typeof gitInstalledSkills }>();
+    for (const skill of gitInstalledSkills) {
+      const repoUrl = skill.source_ref ?? skill.name;
+      const existing = groups.get(repoUrl);
+      if (existing) {
+        existing.skills.push(skill);
+        existing.addedAt = Math.min(existing.addedAt, skill.created_at);
+      } else {
+        const cleaned = repoUrl.replace(/\.git$/, "").replace(/\/$/, "");
+        const repoName = cleaned.split(/[/\\]/).filter(Boolean).slice(-2).join("/") || cleaned;
+        groups.set(repoUrl, { repoUrl, repoName, addedAt: skill.created_at, skills: [skill] });
+      }
+    }
+    for (const group of groups.values()) {
+      group.skills.sort((a, b) => Number(isSkillInUse(b)) - Number(isSkillInUse(a)));
+    }
+    return Array.from(groups.values()).sort((a, b) => b.addedAt - a.addedAt);
+  }, [gitInstalledSkills, isSkillInUse]);
+
+  const toggleGitRepoCollapsed = useCallback((repoUrl: string) => {
+    setCollapsedGitRepos((prev) => {
+      const next = new Set(prev);
+      if (next.has(repoUrl)) next.delete(repoUrl);
+      else next.add(repoUrl);
+      return next;
+    });
+  }, []);
+
+  const toggleGitManageSelect = useCallback((id: string) => {
+    setGitManageSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleGitManageSelectAll = useCallback(() => {
+    setGitManageSelected((prev) =>
+      prev.size === gitInstalledSkills.length
+        ? new Set()
+        : new Set(gitInstalledSkills.map((s) => s.id))
+    );
+  }, [gitInstalledSkills]);
+
+  const handleGitManageUpdate = useCallback(
+    async (id: string) => {
+      setGitManageUpdatingIds((prev) => new Set(prev).add(id));
+      try {
+        await api.updateSkill(id);
+        await refreshManagedSkills();
+        toast.success(t("install.gitManaged.updated"));
+      } catch (err) {
+        toast.error(getErrorMessage(err, t("common.error")));
+      } finally {
+        setGitManageUpdatingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [refreshManagedSkills, t]
+  );
+
+  const handleGitManageDelete = useCallback(async () => {
+    const ids = Array.from(gitManageSelected);
+    if (ids.length === 0) return;
+    await api.deleteManagedSkills(ids);
+    setGitManageSelected(new Set());
+    await Promise.all([refreshPresets(), refreshManagedSkills()]);
+    toast.success(t("install.gitManaged.deleted", { count: ids.length }));
+  }, [gitManageSelected, refreshManagedSkills, refreshPresets, t]);
 
   const installedSourceRefs = useMemo(() => {
     const set = new Set<string>();
@@ -1507,8 +1607,130 @@ export function InstallSkills() {
               </div>
             </div>
           </div>
+
+          {gitInstalledSkills.length > 0 && (
+            <section className="app-panel mt-4 overflow-hidden">
+              <div className="flex items-center justify-between gap-4 border-b border-border-subtle px-4 py-3.5">
+                <div>
+                  <h2 className="text-[13px] font-semibold text-secondary">
+                    {t("install.gitManaged.title")}
+                  </h2>
+                  <p className="mt-0.5 text-[13px] text-muted">
+                    {t("install.gitManaged.summary", {
+                      repoCount: gitRepoGroups.length,
+                      skillCount: gitInstalledSkills.length,
+                    })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleGitManageSelectAll}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-hover px-3 py-2 text-[13px] font-medium text-secondary transition-colors hover:bg-surface-active"
+                  >
+                    {gitManageSelected.size === gitInstalledSkills.length
+                      ? t("install.gitManaged.deselectAll")
+                      : t("install.gitManaged.selectAll")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGitManageDeleteOpen(true)}
+                    disabled={gitManageSelected.size === 0}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[13px] font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t("install.gitManaged.deleteSelected", { count: gitManageSelected.size })}
+                  </button>
+                </div>
+              </div>
+
+              <div className="divide-y divide-border-subtle">
+                {gitRepoGroups.map((group) => {
+                  const collapsed = collapsedGitRepos.has(group.repoUrl);
+                  return (
+                  <div key={group.repoUrl}>
+                    <button
+                      type="button"
+                      onClick={() => toggleGitRepoCollapsed(group.repoUrl)}
+                      className="flex w-full flex-wrap items-baseline justify-between gap-2 bg-surface px-4 py-2 text-left transition-colors hover:bg-surface-hover"
+                    >
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        {collapsed ? (
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-faint" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-faint" />
+                        )}
+                        <span className="truncate text-[12px] font-semibold text-secondary" title={group.repoUrl}>
+                          {group.repoName}
+                        </span>
+                      </span>
+                      <span className="text-[11px] text-faint">
+                        {t("install.gitManaged.addedOn", {
+                          date: new Date(group.addedAt).toLocaleDateString(),
+                        })}
+                      </span>
+                    </button>
+                    {!collapsed && group.skills.map((skill) => (
+                      <div key={skill.id} className="flex items-center gap-3 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={gitManageSelected.has(skill.id)}
+                          onChange={() => toggleGitManageSelect(skill.id)}
+                          className="h-4 w-4 shrink-0 accent-accent"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-[13px] font-medium text-secondary">{skill.name}</p>
+                            {isSkillInUse(skill) && (
+                              <span className="shrink-0 rounded-full border border-accent-border bg-accent-bg px-1.5 py-0.5 text-[10px] font-medium text-accent-light">
+                                {t("install.gitManaged.installed")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleGitManageUpdate(skill.id)}
+                          disabled={gitManageUpdatingIds.has(skill.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-hover px-2.5 py-1.5 text-[12px] font-medium text-secondary transition-colors hover:bg-surface-active disabled:opacity-50"
+                        >
+                          {gitManageUpdatingIds.has(skill.id) ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3" />
+                          )}
+                          {t("install.gitManaged.update")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGitManageSelected(new Set([skill.id]));
+                            setGitManageDeleteOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-hover px-2.5 py-1.5 text-[12px] font-medium text-red-400 transition-colors hover:bg-red-500/10"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          {t("install.gitManaged.remove")}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={gitManageDeleteOpen}
+        tone="danger"
+        title={t("install.gitManaged.deleteSelected", { count: gitManageSelected.size })}
+        message={t("install.gitManaged.deleteConfirm", { count: gitManageSelected.size })}
+        onClose={() => setGitManageDeleteOpen(false)}
+        onConfirm={handleGitManageDelete}
+      />
 
       {/* Git preview / selection dialog */}
       {gitPreview && (

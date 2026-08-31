@@ -6,8 +6,12 @@ use anyhow::{Context, anyhow, bail};
 use app_lib::commands::{presets as preset_cmd, skills as cmd, tools as tool_cmd};
 use app_lib::core::{
     app_state, audit_log::AuditDraft, central_repo, error::AppError, git_backup, git_fetcher,
-    installer, merge, repo_lock::RepoLock, scenario_service, skill_metadata,
-    skill_store::SkillStore, skillssh_api, sync_engine, sync_metadata, tool_adapters, tool_service,
+    installer, mcp_adapters, merge, plugin_adapters, repo_lock::RepoLock, scenario_service, skill_metadata,
+    skill_store::{
+        McpServerRecord, McpServerTargetRecord, PluginMarketplaceRecord, PluginRecord,
+        PluginTargetRecord, SkillStore,
+    },
+    skillssh_api, sync_engine, sync_metadata, tool_adapters, tool_service,
 };
 use clap::{Args, Parser, Subcommand};
 use serde::Serialize;
@@ -33,6 +37,91 @@ enum Commands {
     #[command(alias = "scenarios")]
     Presets(PresetArgs),
     Git(GitArgs),
+    Mcp(McpArgs),
+    Plugins(PluginsArgs),
+}
+
+#[derive(Args, Debug)]
+struct PluginsArgs {
+    #[command(subcommand)]
+    command: PluginsCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum PluginsCommand {
+    List,
+    Add {
+        /// Marketplace key, e.g. "ecc" — matches extraKnownMarketplaces.
+        #[arg(long)]
+        marketplace: String,
+        /// Marketplace git URL.
+        #[arg(long)]
+        url: String,
+        /// Plugin id within the marketplace, e.g. "ecc".
+        plugin_id: String,
+        #[arg(long)]
+        name: Option<String>,
+    },
+    Remove {
+        reference: String,
+    },
+    Deploy {
+        reference: String,
+        #[arg(long, default_value = "claude_code")]
+        tool: String,
+    },
+    Undeploy {
+        reference: String,
+        #[arg(long, default_value = "claude_code")]
+        tool: String,
+    },
+    /// Lists the skills bundled inside a plugin's marketplace source.
+    Skills {
+        reference: String,
+    },
+}
+
+#[derive(Args, Debug)]
+struct McpArgs {
+    #[command(subcommand)]
+    command: McpCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum McpCommand {
+    List,
+    Add {
+        name: String,
+        #[arg(long)]
+        command: String,
+        /// Repeatable: one positional arg for the server process per flag,
+        /// e.g. `--arg -y --arg some-mcp-server`.
+        #[arg(long = "arg", allow_hyphen_values = true)]
+        args: Vec<String>,
+        /// Repeatable `KEY=VALUE` pairs, e.g. `--env API_KEY=secret`.
+        #[arg(long = "env", value_parser = parse_env_pair)]
+        env: Vec<(String, String)>,
+    },
+    Remove {
+        reference: String,
+    },
+    Deploy {
+        reference: String,
+        #[arg(long, default_value = "claude_code")]
+        tool: String,
+    },
+    Undeploy {
+        reference: String,
+        #[arg(long, default_value = "claude_code")]
+        tool: String,
+    },
+}
+
+fn parse_env_pair(s: &str) -> Result<(String, String), String> {
+    match s.split_once('=') {
+        Some((k, v)) if !k.is_empty() => Ok((k.to_string(), v.to_string())),
+        _ => Err(format!("expected KEY=VALUE, got '{s}'")),
+    }
 }
 
 #[derive(Args, Debug)]
@@ -706,6 +795,8 @@ fn run(cli: Cli) -> anyhow::Result<()> {
         Commands::Repo(args) => run_repo(args, &store, cli.json),
         Commands::Tools(args) => run_tools(args, &store, cli.json),
         Commands::Skills(args) => run_skills(args, &store, cli.json),
+        Commands::Mcp(args) => run_mcp(args, &store, cli.json),
+        Commands::Plugins(args) => run_plugins(args, &store, cli.json),
         Commands::Presets(args) => run_presets(args, &store, cli.json),
         Commands::Git(args) => run_git(args, &store, cli.skills_root.is_some(), cli.json),
     }
@@ -1430,6 +1521,351 @@ fn collect_files_inner(root: &Path, current: &Path, out: &mut Vec<String>) -> an
         }
     }
     Ok(())
+}
+
+// ── mcp ───────────────────────────────────────────────────────────────────
+
+fn resolve_mcp_server(store: &SkillStore, reference: &str) -> anyhow::Result<McpServerRecord> {
+    let matches: Vec<_> = store
+        .get_all_mcp_servers()?
+        .into_iter()
+        .filter(|server| server.id == reference || server.name == reference)
+        .collect();
+
+    match matches.len() {
+        1 => Ok(matches.into_iter().next().unwrap()),
+        0 => Err(anyhow!("MCP server not found: {reference}")),
+        _ => Err(anyhow!(
+            "ambiguous reference '{reference}' matches {} MCP servers, use the id",
+            matches.len()
+        )),
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct McpServerReport {
+    #[serde(flatten)]
+    server: McpServerRecord,
+    targets: Vec<McpServerTargetRecord>,
+}
+
+fn mcp_server_report(store: &SkillStore, server: McpServerRecord) -> anyhow::Result<McpServerReport> {
+    let targets = store.get_targets_for_mcp_server(&server.id)?;
+    Ok(McpServerReport { server, targets })
+}
+
+fn run_mcp(args: McpArgs, store: &SkillStore, json: bool) -> anyhow::Result<()> {
+    match args.command {
+        McpCommand::List => {
+            let servers = store
+                .get_all_mcp_servers()?
+                .into_iter()
+                .map(|s| mcp_server_report(store, s))
+                .collect::<anyhow::Result<Vec<_>>>()?;
+            print_json(&servers, json);
+        }
+        McpCommand::Add {
+            name,
+            command,
+            args,
+            env,
+        } => {
+            let trimmed = name.trim();
+            if trimmed.is_empty() {
+                bail!("server name cannot be empty");
+            }
+            let now = chrono::Utc::now().timestamp_millis();
+            let env_json = if env.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_string(
+                    &env.into_iter().collect::<std::collections::HashMap<_, _>>(),
+                )?)
+            };
+            let record = McpServerRecord {
+                id: uuid::Uuid::new_v4().to_string(),
+                name: trimmed.to_string(),
+                description: None,
+                command,
+                args: serde_json::to_string(&args)?,
+                env: env_json,
+                source_type: "manual".to_string(),
+                source_skill_id: None,
+                enabled: true,
+                created_at: now,
+                updated_at: now,
+            };
+            store.insert_mcp_server(&record)?;
+            print_json(&mcp_server_report(store, record)?, json);
+        }
+        McpCommand::Remove { reference } => {
+            let server = resolve_mcp_server(store, &reference)?;
+            for target in store.get_targets_for_mcp_server(&server.id)? {
+                if let Some(adapter) = mcp_adapters::find_adapter(&target.tool) {
+                    // Best-effort: the DB row is being deleted regardless, so a
+                    // config-file write failure here must not block removal.
+                    let _ = mcp_adapters::undeploy_server(&adapter, &server.name);
+                }
+            }
+            store.delete_mcp_server(&server.id)?;
+            print_json(&serde_json::json!({"ok": true, "removed": server.name}), json);
+        }
+        McpCommand::Deploy { reference, tool } => {
+            let server = resolve_mcp_server(store, &reference)?;
+            let adapter = mcp_adapters::find_adapter(&tool)
+                .ok_or_else(|| anyhow!("unknown tool: {tool}"))?;
+            mcp_adapters::deploy_server(&adapter, &server)?;
+            store.insert_mcp_server_target(&McpServerTargetRecord {
+                id: uuid::Uuid::new_v4().to_string(),
+                mcp_server_id: server.id.clone(),
+                tool: tool.clone(),
+                status: "ok".to_string(),
+                synced_at: Some(chrono::Utc::now().timestamp_millis()),
+                last_error: None,
+            })?;
+            print_json(&mcp_server_report(store, server)?, json);
+        }
+        McpCommand::Undeploy { reference, tool } => {
+            let server = resolve_mcp_server(store, &reference)?;
+            let adapter = mcp_adapters::find_adapter(&tool)
+                .ok_or_else(|| anyhow!("unknown tool: {tool}"))?;
+            mcp_adapters::undeploy_server(&adapter, &server.name)?;
+            store.delete_mcp_server_target(&server.id, &tool)?;
+            print_json(&mcp_server_report(store, server)?, json);
+        }
+    }
+    Ok(())
+}
+
+// ── plugins ───────────────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize)]
+struct PluginReport {
+    id: String,
+    plugin_id: String,
+    name: Option<String>,
+    enabled: bool,
+    marketplace_key: String,
+    marketplace_url: String,
+    targets: Vec<PluginTargetRecord>,
+}
+
+fn plugin_report(store: &SkillStore, plugin: PluginRecord) -> anyhow::Result<PluginReport> {
+    let marketplace = store
+        .get_all_plugin_marketplaces()?
+        .into_iter()
+        .find(|m| m.id == plugin.marketplace_id)
+        .ok_or_else(|| anyhow!("marketplace missing for plugin {}", plugin.plugin_id))?;
+    let targets = store.get_targets_for_plugin(&plugin.id)?;
+    Ok(PluginReport {
+        id: plugin.id,
+        plugin_id: plugin.plugin_id,
+        name: plugin.name,
+        enabled: plugin.enabled,
+        marketplace_key: marketplace.key,
+        marketplace_url: marketplace.source_url,
+        targets,
+    })
+}
+
+fn resolve_plugin(store: &SkillStore, reference: &str) -> anyhow::Result<PluginRecord> {
+    let matches: Vec<_> = store
+        .get_all_plugins()?
+        .into_iter()
+        .filter(|p| p.id == reference || p.plugin_id == reference)
+        .collect();
+    match matches.len() {
+        1 => Ok(matches.into_iter().next().unwrap()),
+        0 => Err(anyhow!("plugin not found: {reference}")),
+        _ => Err(anyhow!(
+            "ambiguous reference '{reference}' matches {} plugins, use the id",
+            matches.len()
+        )),
+    }
+}
+
+fn run_plugins(args: PluginsArgs, store: &SkillStore, json: bool) -> anyhow::Result<()> {
+    match args.command {
+        PluginsCommand::List => {
+            let plugins = store
+                .get_all_plugins()?
+                .into_iter()
+                .map(|p| plugin_report(store, p))
+                .collect::<anyhow::Result<Vec<_>>>()?;
+            print_json(&plugins, json);
+        }
+        PluginsCommand::Add {
+            marketplace,
+            url,
+            plugin_id,
+            name,
+        } => {
+            let marketplace_key = marketplace.trim();
+            if marketplace_key.is_empty() || url.trim().is_empty() || plugin_id.trim().is_empty() {
+                bail!("marketplace, url, and plugin_id are all required");
+            }
+            let now = chrono::Utc::now().timestamp_millis();
+            let marketplace_record = match store.get_plugin_marketplace_by_key(marketplace_key)? {
+                Some(existing) => existing,
+                None => {
+                    let record = PluginMarketplaceRecord {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        key: marketplace_key.to_string(),
+                        source_url: url.trim().to_string(),
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    store.upsert_plugin_marketplace(&record)?;
+                    record
+                }
+            };
+            if store
+                .get_plugin_by_marketplace_and_plugin_id(&marketplace_record.id, plugin_id.trim())?
+                .is_some()
+            {
+                bail!("'{}' from marketplace '{}' is already tracked", plugin_id, marketplace_key);
+            }
+            let record = PluginRecord {
+                id: uuid::Uuid::new_v4().to_string(),
+                marketplace_id: marketplace_record.id,
+                plugin_id: plugin_id.trim().to_string(),
+                name,
+                enabled: false,
+                created_at: now,
+                updated_at: now,
+            };
+            store.insert_plugin(&record)?;
+            print_json(&plugin_report(store, record)?, json);
+        }
+        PluginsCommand::Remove { reference } => {
+            let plugin = resolve_plugin(store, &reference)?;
+            let marketplace = store
+                .get_all_plugin_marketplaces()?
+                .into_iter()
+                .find(|m| m.id == plugin.marketplace_id)
+                .ok_or_else(|| anyhow!("marketplace missing for plugin {}", plugin.plugin_id))?;
+            for target in store.get_targets_for_plugin(&plugin.id)? {
+                if let Some(adapter) = plugin_adapters::find_adapter(&target.tool) {
+                    let _ = plugin_adapters::undeploy_plugin(&adapter, &marketplace.key, &plugin.plugin_id);
+                }
+            }
+            store.delete_plugin(&plugin.id)?;
+            print_json(&serde_json::json!({"ok": true, "removed": plugin.plugin_id}), json);
+        }
+        PluginsCommand::Deploy { reference, tool } => {
+            let plugin = resolve_plugin(store, &reference)?;
+            let marketplace = store
+                .get_all_plugin_marketplaces()?
+                .into_iter()
+                .find(|m| m.id == plugin.marketplace_id)
+                .ok_or_else(|| anyhow!("marketplace missing for plugin {}", plugin.plugin_id))?;
+            let adapter = plugin_adapters::find_adapter(&tool).ok_or_else(|| anyhow!("unknown tool: {tool}"))?;
+            plugin_adapters::deploy_plugin(&adapter, &marketplace.key, &marketplace.source_url, &plugin.plugin_id)?;
+            let now = chrono::Utc::now().timestamp_millis();
+            store.insert_plugin_target(&PluginTargetRecord {
+                id: uuid::Uuid::new_v4().to_string(),
+                plugin_id: plugin.id.clone(),
+                tool: tool.clone(),
+                status: "ok".to_string(),
+                synced_at: Some(now),
+                last_error: None,
+            })?;
+            store.update_plugin_enabled(&plugin.id, true, now)?;
+            let updated = store
+                .get_plugin_by_id(&plugin.id)?
+                .ok_or_else(|| anyhow!("plugin vanished after deploy"))?;
+            print_json(&plugin_report(store, updated)?, json);
+        }
+        PluginsCommand::Undeploy { reference, tool } => {
+            let plugin = resolve_plugin(store, &reference)?;
+            let marketplace = store
+                .get_all_plugin_marketplaces()?
+                .into_iter()
+                .find(|m| m.id == plugin.marketplace_id)
+                .ok_or_else(|| anyhow!("marketplace missing for plugin {}", plugin.plugin_id))?;
+            let adapter = plugin_adapters::find_adapter(&tool).ok_or_else(|| anyhow!("unknown tool: {tool}"))?;
+            plugin_adapters::undeploy_plugin(&adapter, &marketplace.key, &plugin.plugin_id)?;
+            store.delete_plugin_target(&plugin.id, &tool)?;
+            let now = chrono::Utc::now().timestamp_millis();
+            let remaining = store.get_targets_for_plugin(&plugin.id)?;
+            store.update_plugin_enabled(&plugin.id, !remaining.is_empty(), now)?;
+            let updated = store
+                .get_plugin_by_id(&plugin.id)?
+                .ok_or_else(|| anyhow!("plugin vanished after undeploy"))?;
+            print_json(&plugin_report(store, updated)?, json);
+        }
+        PluginsCommand::Skills { reference } => {
+            let plugin = resolve_plugin(store, &reference)?;
+            let marketplace = store
+                .get_all_plugin_marketplaces()?
+                .into_iter()
+                .find(|m| m.id == plugin.marketplace_id)
+                .ok_or_else(|| anyhow!("marketplace missing for plugin {}", plugin.plugin_id))?;
+            let skills = list_plugin_skills(store, &marketplace, &plugin.plugin_id)?;
+            print_json(&skills, json);
+        }
+    }
+    Ok(())
+}
+
+#[derive(serde::Deserialize)]
+struct MarketplaceManifestPlugin {
+    name: String,
+    #[serde(default)]
+    source: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct MarketplaceManifest {
+    #[serde(default)]
+    plugins: Vec<MarketplaceManifestPlugin>,
+}
+
+fn list_plugin_skills(
+    store: &SkillStore,
+    marketplace: &app_lib::core::skill_store::PluginMarketplaceRecord,
+    plugin_id: &str,
+) -> anyhow::Result<Vec<cmd::GitSkillPreview>> {
+    let proxy_url = store.get_setting("proxy_url").ok().flatten();
+    let parsed = git_fetcher::parse_git_source_resolved(&marketplace.source_url, proxy_url.as_deref());
+    let repo_dir = git_fetcher::clone_repo_ref_with_progress(
+        &parsed.clone_url,
+        parsed.branch.as_deref(),
+        None,
+        proxy_url.as_deref(),
+        None,
+    )?;
+
+    let manifest_path = repo_dir.join(".claude-plugin").join("marketplace.json");
+    let plugin_source = std::fs::read_to_string(&manifest_path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<MarketplaceManifest>(&raw).ok())
+        .and_then(|manifest| manifest.plugins.into_iter().find(|p| p.name == plugin_id))
+        .and_then(|p| p.source);
+
+    let skill_root = cmd::resolve_skill_dir(&repo_dir, plugin_source.as_deref(), None).map_err(map_app_err)?;
+    let dirs = cmd::collect_git_skill_dirs(&skill_root);
+    Ok(dirs
+        .iter()
+        .map(|dir| {
+            let meta = skill_metadata::parse_skill_md(dir);
+            let rel_path = dir
+                .strip_prefix(&skill_root)
+                .unwrap_or(dir)
+                .to_string_lossy()
+                .replace('\\', "/");
+            let basename = dir
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| rel_path.clone());
+            let name = meta.name.filter(|s| !s.trim().is_empty()).unwrap_or(basename);
+            cmd::GitSkillPreview {
+                rel_path,
+                name,
+                description: meta.description,
+            }
+        })
+        .collect())
 }
 
 // ── install ───────────────────────────────────────────────────────────────

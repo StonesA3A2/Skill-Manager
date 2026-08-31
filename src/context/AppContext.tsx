@@ -19,6 +19,7 @@ interface AppState {
   loading: boolean;
   appError: string | null;
   helpOpen: boolean;
+  helpSection: string | null;
   detailSkillId: string | null;
   /** Result of the last app-version check. Notification only: installing an
    *  update is always started by the user from Settings. */
@@ -32,7 +33,7 @@ interface AppState {
   setViewedPresetId: (id: string) => void;
   applyPresetToDefault: (id: string) => Promise<void>;
   clearAppError: () => void;
-  openHelp: () => void;
+  openHelp: (section?: string) => void;
   closeHelp: () => void;
   openSkillDetailById: (skillId: string) => void;
   closeSkillDetail: () => void;
@@ -61,6 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [appError, setAppError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [helpSection, setHelpSection] = useState<string | null>(null);
   const [detailSkillId, setDetailSkillId] = useState<string | null>(null);
   const [appUpdate, setAppUpdate] = useState<AppUpdateInfo | null>(null);
   const autoCheckInFlightRef = useRef(false);
@@ -448,6 +450,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         loading,
         appError,
         helpOpen,
+        helpSection,
         detailSkillId,
         appUpdate,
         refreshAppUpdate,
@@ -459,8 +462,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setViewedPresetId,
         applyPresetToDefault: handleApplyPresetToDefault,
         clearAppError: () => setAppError(null),
-        openHelp: () => setHelpOpen(true),
-        closeHelp: () => setHelpOpen(false),
+        openHelp: (section) => {
+          setHelpSection(section ?? null);
+          setHelpOpen(true);
+        },
+        closeHelp: () => {
+          setHelpOpen(false);
+          setHelpSection(null);
+        },
         openSkillDetailById: (skillId: string) => setDetailSkillId(skillId),
         closeSkillDetail: () => setDetailSkillId(null),
       }}

@@ -109,6 +109,72 @@ pub struct ScenarioSkillToolToggleRecord {
     pub updated_at: i64,
 }
 
+/// One configured MCP server. `env` is a JSON object (string-keyed,
+/// string-valued); secret-looking values inside it are expected to already
+/// be encrypted by the caller with the same `enc:v1:` convention used for
+/// `settings` (see `crypto::encrypt`/`is_encrypted`) — this table stores
+/// opaque text and never encrypts/decrypts on its own.
+#[derive(Debug, Clone, Serialize)]
+pub struct McpServerRecord {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub command: String,
+    /// JSON-encoded array of strings.
+    pub args: String,
+    /// JSON-encoded object, or `None` if the server takes no env vars.
+    pub env: Option<String>,
+    pub source_type: String,
+    pub source_skill_id: Option<String>,
+    pub enabled: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+/// One (server, tool) deployment — mirrors `SkillTargetRecord`. A server can
+/// be enabled for several tools independently, each tracked separately since
+/// writing into one tool's MCP config file can succeed while another fails.
+#[derive(Debug, Clone, Serialize)]
+pub struct McpServerTargetRecord {
+    pub id: String,
+    pub mcp_server_id: String,
+    pub tool: String,
+    pub status: String,
+    pub synced_at: Option<i64>,
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PluginMarketplaceRecord {
+    pub id: String,
+    pub key: String,
+    pub source_url: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PluginRecord {
+    pub id: String,
+    pub marketplace_id: String,
+    pub plugin_id: String,
+    pub name: Option<String>,
+    pub enabled: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+/// Mirrors `McpServerTargetRecord` — one row per (plugin, tool) deployment.
+#[derive(Debug, Clone, Serialize)]
+pub struct PluginTargetRecord {
+    pub id: String,
+    pub plugin_id: String,
+    pub tool: String,
+    pub status: String,
+    pub synced_at: Option<i64>,
+    pub last_error: Option<String>,
+}
+
 impl SkillStore {
     pub fn new(db_path: &PathBuf) -> Result<Self> {
         let conn = Connection::open(db_path)?;
@@ -511,6 +577,296 @@ impl SkillStore {
         conn.execute(
             "DELETE FROM skill_targets WHERE skill_id = ?1 AND tool = ?2",
             params![skill_id, tool],
+        )?;
+        Ok(())
+    }
+
+    // ── MCP Servers ──
+
+    pub fn insert_mcp_server(&self, server: &McpServerRecord) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO mcp_servers (
+                id, name, description, command, args, env, source_type, source_skill_id,
+                enabled, created_at, updated_at
+             )
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                server.id,
+                server.name,
+                server.description,
+                server.command,
+                server.args,
+                server.env,
+                server.source_type,
+                server.source_skill_id,
+                server.enabled,
+                server.created_at,
+                server.updated_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_mcp_server(&self, server: &McpServerRecord) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE mcp_servers SET
+                name = ?2, description = ?3, command = ?4, args = ?5, env = ?6,
+                enabled = ?7, updated_at = ?8
+             WHERE id = ?1",
+            params![
+                server.id,
+                server.name,
+                server.description,
+                server.command,
+                server.args,
+                server.env,
+                server.enabled,
+                server.updated_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_all_mcp_servers(&self) -> Result<Vec<McpServerRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, name, description, command, args, env, source_type, source_skill_id,
+                    enabled, created_at, updated_at
+             FROM mcp_servers ORDER BY name",
+        )?;
+        let rows = stmt.query_map([], map_mcp_server_row)?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn get_mcp_server_by_id(&self, id: &str) -> Result<Option<McpServerRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, name, description, command, args, env, source_type, source_skill_id,
+                    enabled, created_at, updated_at
+             FROM mcp_servers WHERE id = ?1",
+        )?;
+        let mut rows = stmt.query_map(params![id], map_mcp_server_row)?;
+        Ok(rows.next().and_then(|r| r.ok()))
+    }
+
+    pub fn get_mcp_servers_by_source_skill_id(&self, skill_id: &str) -> Result<Vec<McpServerRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, name, description, command, args, env, source_type, source_skill_id,
+                    enabled, created_at, updated_at
+             FROM mcp_servers WHERE source_skill_id = ?1",
+        )?;
+        let rows = stmt.query_map(params![skill_id], map_mcp_server_row)?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// Deletes the server and, via `ON DELETE CASCADE`, all its
+    /// `mcp_server_targets` rows.
+    pub fn delete_mcp_server(&self, id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM mcp_servers WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    // ── MCP Server Targets ──
+
+    pub fn insert_mcp_server_target(&self, target: &McpServerTargetRecord) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO mcp_server_targets (id, mcp_server_id, tool, status, synced_at, last_error)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(mcp_server_id, tool) DO UPDATE SET
+                status = excluded.status,
+                synced_at = excluded.synced_at,
+                last_error = excluded.last_error",
+            params![
+                target.id,
+                target.mcp_server_id,
+                target.tool,
+                target.status,
+                target.synced_at,
+                target.last_error,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_targets_for_mcp_server(&self, mcp_server_id: &str) -> Result<Vec<McpServerTargetRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, mcp_server_id, tool, status, synced_at, last_error
+             FROM mcp_server_targets WHERE mcp_server_id = ?1",
+        )?;
+        let rows = stmt.query_map(params![mcp_server_id], map_mcp_server_target_row)?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn get_all_mcp_server_targets(&self) -> Result<Vec<McpServerTargetRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, mcp_server_id, tool, status, synced_at, last_error FROM mcp_server_targets",
+        )?;
+        let rows = stmt.query_map([], map_mcp_server_target_row)?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn delete_mcp_server_target(&self, mcp_server_id: &str, tool: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "DELETE FROM mcp_server_targets WHERE mcp_server_id = ?1 AND tool = ?2",
+            params![mcp_server_id, tool],
+        )?;
+        Ok(())
+    }
+
+    // ── Plugin Marketplaces ──
+
+    pub fn upsert_plugin_marketplace(&self, marketplace: &PluginMarketplaceRecord) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO plugin_marketplaces (id, key, source_url, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(key) DO UPDATE SET
+                source_url = excluded.source_url,
+                updated_at = excluded.updated_at",
+            params![
+                marketplace.id,
+                marketplace.key,
+                marketplace.source_url,
+                marketplace.created_at,
+                marketplace.updated_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_plugin_marketplace_by_key(&self, key: &str) -> Result<Option<PluginMarketplaceRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, key, source_url, created_at, updated_at FROM plugin_marketplaces WHERE key = ?1",
+        )?;
+        let mut rows = stmt.query_map(params![key], map_plugin_marketplace_row)?;
+        Ok(rows.next().and_then(|r| r.ok()))
+    }
+
+    pub fn get_all_plugin_marketplaces(&self) -> Result<Vec<PluginMarketplaceRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, key, source_url, created_at, updated_at FROM plugin_marketplaces ORDER BY key",
+        )?;
+        let rows = stmt.query_map([], map_plugin_marketplace_row)?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    // ── Plugins ──
+
+    pub fn insert_plugin(&self, plugin: &PluginRecord) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO plugins (id, marketplace_id, plugin_id, name, enabled, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                plugin.id,
+                plugin.marketplace_id,
+                plugin.plugin_id,
+                plugin.name,
+                plugin.enabled,
+                plugin.created_at,
+                plugin.updated_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_plugin_enabled(&self, id: &str, enabled: bool, updated_at: i64) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE plugins SET enabled = ?2, updated_at = ?3 WHERE id = ?1",
+            params![id, enabled, updated_at],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_plugin_by_id(&self, id: &str) -> Result<Option<PluginRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, marketplace_id, plugin_id, name, enabled, created_at, updated_at FROM plugins WHERE id = ?1",
+        )?;
+        let mut rows = stmt.query_map(params![id], map_plugin_row)?;
+        Ok(rows.next().and_then(|r| r.ok()))
+    }
+
+    pub fn get_plugin_by_marketplace_and_plugin_id(
+        &self,
+        marketplace_id: &str,
+        plugin_id: &str,
+    ) -> Result<Option<PluginRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, marketplace_id, plugin_id, name, enabled, created_at, updated_at
+             FROM plugins WHERE marketplace_id = ?1 AND plugin_id = ?2",
+        )?;
+        let mut rows = stmt.query_map(params![marketplace_id, plugin_id], map_plugin_row)?;
+        Ok(rows.next().and_then(|r| r.ok()))
+    }
+
+    pub fn get_all_plugins(&self) -> Result<Vec<PluginRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, marketplace_id, plugin_id, name, enabled, created_at, updated_at FROM plugins",
+        )?;
+        let rows = stmt.query_map([], map_plugin_row)?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// Deletes the plugin and, via `ON DELETE CASCADE`, its `plugin_targets`
+    /// rows. Does not touch the marketplace row — other plugins may still
+    /// reference it.
+    pub fn delete_plugin(&self, id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM plugins WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    // ── Plugin Targets ──
+
+    pub fn insert_plugin_target(&self, target: &PluginTargetRecord) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO plugin_targets (id, plugin_id, tool, status, synced_at, last_error)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(plugin_id, tool) DO UPDATE SET
+                status = excluded.status,
+                synced_at = excluded.synced_at,
+                last_error = excluded.last_error",
+            params![
+                target.id,
+                target.plugin_id,
+                target.tool,
+                target.status,
+                target.synced_at,
+                target.last_error,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_targets_for_plugin(&self, plugin_id: &str) -> Result<Vec<PluginTargetRecord>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, plugin_id, tool, status, synced_at, last_error FROM plugin_targets WHERE plugin_id = ?1",
+        )?;
+        let rows = stmt.query_map(params![plugin_id], map_plugin_target_row)?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn delete_plugin_target(&self, plugin_id: &str, tool: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "DELETE FROM plugin_targets WHERE plugin_id = ?1 AND tool = ?2",
+            params![plugin_id, tool],
         )?;
         Ok(())
     }
@@ -1528,6 +1884,66 @@ fn map_skill_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SkillRecord> {
         update_status: row.get(16)?,
         last_checked_at: row.get(17)?,
         last_check_error: row.get(18)?,
+    })
+}
+
+fn map_mcp_server_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<McpServerRecord> {
+    Ok(McpServerRecord {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        description: row.get(2)?,
+        command: row.get(3)?,
+        args: row.get(4)?,
+        env: row.get(5)?,
+        source_type: row.get(6)?,
+        source_skill_id: row.get(7)?,
+        enabled: row.get::<_, i32>(8)? != 0,
+        created_at: row.get(9)?,
+        updated_at: row.get(10)?,
+    })
+}
+
+fn map_mcp_server_target_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<McpServerTargetRecord> {
+    Ok(McpServerTargetRecord {
+        id: row.get(0)?,
+        mcp_server_id: row.get(1)?,
+        tool: row.get(2)?,
+        status: row.get(3)?,
+        synced_at: row.get(4)?,
+        last_error: row.get(5)?,
+    })
+}
+
+fn map_plugin_marketplace_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<PluginMarketplaceRecord> {
+    Ok(PluginMarketplaceRecord {
+        id: row.get(0)?,
+        key: row.get(1)?,
+        source_url: row.get(2)?,
+        created_at: row.get(3)?,
+        updated_at: row.get(4)?,
+    })
+}
+
+fn map_plugin_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<PluginRecord> {
+    Ok(PluginRecord {
+        id: row.get(0)?,
+        marketplace_id: row.get(1)?,
+        plugin_id: row.get(2)?,
+        name: row.get(3)?,
+        enabled: row.get::<_, i32>(4)? != 0,
+        created_at: row.get(5)?,
+        updated_at: row.get(6)?,
+    })
+}
+
+fn map_plugin_target_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<PluginTargetRecord> {
+    Ok(PluginTargetRecord {
+        id: row.get(0)?,
+        plugin_id: row.get(1)?,
+        tool: row.get(2)?,
+        status: row.get(3)?,
+        synced_at: row.get(4)?,
+        last_error: row.get(5)?,
     })
 }
 

@@ -262,6 +262,109 @@ export interface BatchDeleteSkillsResult {
 export const deleteManagedSkills = (skillIds: string[]) =>
   invoke<BatchDeleteSkillsResult>("delete_managed_skills", { skillIds });
 
+export interface McpServerTarget {
+  id: string;
+  mcp_server_id: string;
+  tool: string;
+  status: string;
+  synced_at: number | null;
+  last_error: string | null;
+}
+
+export interface McpServer {
+  id: string;
+  name: string;
+  description: string | null;
+  command: string;
+  /** JSON-encoded array of strings — parse before editing, stringify before sending. */
+  args: string;
+  /** JSON-encoded object, or null if the server takes no env vars. */
+  env: string | null;
+  source_type: string;
+  source_skill_id: string | null;
+  enabled: boolean;
+  created_at: number;
+  updated_at: number;
+  targets: McpServerTarget[];
+}
+
+export const listMcpServers = () => invoke<McpServer[]>("list_mcp_servers");
+
+export const createMcpServer = (
+  name: string,
+  description: string | null,
+  command: string,
+  args: string[],
+  env: Record<string, string> | null
+) =>
+  invoke<McpServer>("create_mcp_server", { name, description, command, args, env });
+
+export const updateMcpServer = (
+  id: string,
+  name: string,
+  description: string | null,
+  command: string,
+  args: string[],
+  env: Record<string, string> | null,
+  enabled: boolean
+) =>
+  invoke<McpServer>("update_mcp_server", { id, name, description, command, args, env, enabled });
+
+export const deleteMcpServer = (id: string) => invoke<void>("delete_mcp_server", { id });
+
+export const deployMcpServer = (id: string, tool: string) =>
+  invoke<McpServer>("deploy_mcp_server", { id, tool });
+
+export const undeployMcpServer = (id: string, tool: string) =>
+  invoke<McpServer>("undeploy_mcp_server", { id, tool });
+
+export interface PluginTarget {
+  id: string;
+  plugin_id: string;
+  tool: string;
+  status: string;
+  synced_at: number | null;
+  last_error: string | null;
+}
+
+export interface Plugin {
+  id: string;
+  plugin_id: string;
+  name: string | null;
+  enabled: boolean;
+  marketplace_key: string;
+  marketplace_url: string;
+  created_at: number;
+  updated_at: number;
+  targets: PluginTarget[];
+}
+
+export const listPlugins = () => invoke<Plugin[]>("list_plugins");
+
+export const createPlugin = (
+  marketplaceKey: string,
+  marketplaceUrl: string,
+  pluginId: string,
+  name: string | null
+) => invoke<Plugin>("create_plugin", { marketplaceKey, marketplaceUrl, pluginId, name });
+
+export const deletePlugin = (id: string) => invoke<void>("delete_plugin", { id });
+
+export const deployPlugin = (id: string, tool: string) =>
+  invoke<Plugin>("deploy_plugin", { id, tool });
+
+export const undeployPlugin = (id: string, tool: string) =>
+  invoke<Plugin>("undeploy_plugin", { id, tool });
+
+export interface PluginSkillPreview {
+  rel_path: string;
+  name: string;
+  description: string | null;
+}
+
+export const listPluginSkills = (id: string) =>
+  invoke<PluginSkillPreview[]>("list_plugin_skills", { id });
+
 export const installLocal = (sourcePath: string, name?: string) =>
   invoke<void>("install_local", { sourcePath, name: name || null });
 

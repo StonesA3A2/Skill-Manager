@@ -16,6 +16,8 @@ import {
   Link2,
   ChevronDown,
   ChevronRight,
+  Plug,
+  Blocks,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -168,6 +170,8 @@ export function Sidebar() {
     { name: t("sidebar.dashboard"), path: "/", icon: LayoutDashboard },
     { name: t("sidebar.mySkills"), path: "/my-skills", icon: Layers },
     { name: t("sidebar.installSkills"), path: "/install", icon: Download },
+    { name: t("sidebar.mcpServers"), path: "/mcp", icon: Plug },
+    { name: t("sidebar.plugins"), path: "/plugins", icon: Blocks },
     { name: t("sidebar.backup"), path: "/backup", icon: CloudUpload },
   ];
 
@@ -383,6 +387,7 @@ export function Sidebar() {
         <div className="flex items-center px-3 gap-3 pb-2.5 shrink-0">
           <img
             src="/icons/32x32.png"
+            srcSet="/icons/32x32.png 1x, /icons/64x64.png 2x"
             alt="logo"
             className="w-[24px] h-[24px] shrink-0"
           />

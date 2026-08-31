@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use rusqlite::Connection;
 
 /// Current schema version. Bump this when adding a new migration.
-const LATEST_VERSION: u32 = 7;
+const LATEST_VERSION: u32 = 9;
 
 /// Run all pending migrations on the database.
 ///
@@ -54,6 +54,8 @@ fn migrate_step(conn: &Connection, from_version: u32) -> Result<()> {
         4 => migrate_v4_to_v5(conn),
         5 => migrate_v5_to_v6(conn),
         6 => migrate_v6_to_v7(conn),
+        7 => migrate_v7_to_v8(conn),
+        8 => migrate_v8_to_v9(conn),
         _ => bail!("unknown migration version: {from_version}"),
     }
 }
@@ -289,6 +291,90 @@ fn migrate_v6_to_v7(conn: &Connection) -> Result<()> {
             theirs_path TEXT,
             detected_at INTEGER NOT NULL
         );
+        ",
+    )?;
+    Ok(())
+}
+
+/// v7 → v8: MCP server management (skill-manager update-plan item 2, step 1).
+/// `mcp_servers` mirrors `skills`: one row per server definition, `env` holds
+/// a JSON object whose secret-looking values are stored pre-encrypted by the
+/// caller (same `enc:v1:` convention as the `settings` table) — this table
+/// never encrypts/decrypts on its own. `mcp_server_targets` mirrors
+/// `skill_targets`: one row per (server, tool) deployment, since a server can
+/// be enabled for multiple tools independently, each with its own sync state.
+fn migrate_v7_to_v8(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS mcp_servers (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            command TEXT NOT NULL,
+            args TEXT NOT NULL,
+            env TEXT,
+            source_type TEXT NOT NULL,
+            source_skill_id TEXT REFERENCES skills(id) ON DELETE SET NULL,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS mcp_server_targets (
+            id TEXT PRIMARY KEY,
+            mcp_server_id TEXT NOT NULL REFERENCES mcp_servers(id) ON DELETE CASCADE,
+            tool TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'ok',
+            synced_at INTEGER,
+            last_error TEXT,
+            UNIQUE(mcp_server_id, tool)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_mcp_servers_source_skill_id ON mcp_servers(source_skill_id);
+        CREATE INDEX IF NOT EXISTS idx_mcp_server_targets_mcp_server_id ON mcp_server_targets(mcp_server_id);
+        ",
+    )?;
+    Ok(())
+}
+
+/// v8 → v9: Claude Code plugin management (update-plan item 2c). A "plugin"
+/// is one entry in a marketplace; `plugin_marketplaces` and `plugins` are
+/// split (rather than duplicating the marketplace URL onto every plugin row)
+/// because several plugins commonly share one marketplace.
+fn migrate_v8_to_v9(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS plugin_marketplaces (
+            id TEXT PRIMARY KEY,
+            key TEXT NOT NULL UNIQUE,
+            source_url TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS plugins (
+            id TEXT PRIMARY KEY,
+            marketplace_id TEXT NOT NULL REFERENCES plugin_marketplaces(id) ON DELETE CASCADE,
+            plugin_id TEXT NOT NULL,
+            name TEXT,
+            enabled INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            UNIQUE(marketplace_id, plugin_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS plugin_targets (
+            id TEXT PRIMARY KEY,
+            plugin_id TEXT NOT NULL REFERENCES plugins(id) ON DELETE CASCADE,
+            tool TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'ok',
+            synced_at INTEGER,
+            last_error TEXT,
+            UNIQUE(plugin_id, tool)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_plugins_marketplace_id ON plugins(marketplace_id);
+        CREATE INDEX IF NOT EXISTS idx_plugin_targets_plugin_id ON plugin_targets(plugin_id);
         ",
     )?;
     Ok(())

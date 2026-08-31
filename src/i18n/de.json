@@ -8,6 +8,8 @@
     "globalWorkspace": "Globaler Arbeitsbereich",
     "lobsterAgents": "Lobster-Agenten",
     "installSkills": "Skills installieren",
+    "mcpServers": "MCP-Server",
+    "plugins": "Plugins",
     "backup": "Sicherung",
     "presets": "Presets",
     "newPreset": "Neues Preset",
@@ -30,11 +32,11 @@
       },
       "install": {
         "title": "Skills installieren",
-        "description": "Import aus lokalen Ordnern, Git-Repositories, Archiven oder dem Marktplatz. Mehrere Skills gleichzeitig aus einem Ordner per Stapelimport übernehmen."
+        "description": "Import aus lokalen Ordnern, Git-Repositories, Archiven oder dem Marktplatz. Mehrere Skills gleichzeitig aus einem Ordner per Stapelimport übernehmen. Der Reiter „Git-Installationen\" listet alle aus einem Git-Repository installierten Skills, gruppiert nach Repository (mit Datum des Hinzufügens) und pro Repo einklappbar — dort auswählen und löschen; ein „Installiert\"-Badge markiert die tatsächlich verwendeten (in einem Preset oder bei einem Agenten deployed)."
       },
       "sync": {
         "title": "Bibliothek",
-        "description": "Alle installierten Skills durchsuchen mit Massenbearbeitung von Tags und Sync-Umschaltern pro Agent. Nach Quelle oder Tag filtern — inklusive einer „Ohne Tag“-Pille, um Skills ohne Beschriftung zu finden. Auf ein Agenten-Symbol auf einer Skill-Karte klicken, um diesen Skill für diesen Agenten mit einem Klick zu installieren oder zu entfernen; der stets sichtbare Löschen-Button entfernt einen Skill aus der zentralen Bibliothek. Auf die Karte selbst klicken für Dokumentation, Versionsverlauf und Sync-Details der Agenten."
+        "description": "Alle installierten Skills durchsuchen mit Massenbearbeitung von Tags und Sync-Umschaltern pro Agent. Nach Quelle oder Tag filtern — inklusive einer „Ohne Tag“-Pille, um Skills ohne Beschriftung zu finden. Auf ein Agenten-Symbol auf einer Skill-Karte klicken, um diesen Skill für diesen Agenten mit einem Klick zu installieren oder zu entfernen; der stets sichtbare Löschen-Button entfernt einen Skill aus der zentralen Bibliothek. Auf die Karte selbst klicken für Dokumentation, Versionsverlauf und Sync-Details der Agenten. Mit dem Umschalter „Solo Skills\" / „Plugin Skills\" oben zwischen deiner regulären Bibliothek und einer schreibgeschützten Ansicht der Skills wechseln, die in deinen aktuell aktiven Plugins enthalten sind."
       },
       "global": {
         "title": "Globaler Arbeitsbereich",
@@ -50,7 +52,15 @@
       },
       "settings": {
         "title": "Einstellungen",
-        "description": "Agenten-Pfade und Umschalter verwalten, benutzerdefinierte Agenten hinzufügen, per Ziehen die Reihenfolge der Agenten in der App ändern, Sync-Modus, Theme, Textgröße, Sprache, Proxy, Git-Remote, KI-Suchschlüssel ändern und nach App-Updates suchen. Protokolle exportieren, um aktuelle Logs und Installations-/Entfernungs-/Update-/Sync-Aktivität für eine Fehlermeldung in einer ZIP-Datei zu bündeln."
+        "description": "Agenten-Pfade und Umschalter verwalten, benutzerdefinierte Agenten hinzufügen, per Ziehen die Reihenfolge der Agenten in der App ändern, Sync-Modus, Theme, Textgröße, Sprache, Proxy, Git-Remote, KI-Suchschlüssel ändern und nach App-Updates suchen. Protokolle exportieren, um aktuelle Logs und Installations-/Entfernungs-/Update-/Sync-Aktivität für eine Fehlermeldung in einer ZIP-Datei zu bündeln.\n\nZentraler Repository-Pfad: Ein lokaler Ordner auf diesem Computer, in dem die App deine Skill-Dateien, Datenbank und den Cache speichert. Das ist NICHT der eigene Quellcode oder das GitHub-Repository von Skills Manager — hier wird nichts von GitHub geklont oder heruntergeladen. \"Aktuellen Ordner anzeigen\" öffnet diesen Ordner nur im Datei-Explorer zum Ansehen; nutze \"Verzeichnis ändern\", um wirklich einen anderen auszuwählen."
+      },
+      "mcp": {
+        "title": "MCP-Server",
+        "description": "Einen Model-Context-Protocol-Server hinzufügen (Name, Befehl, Argumente, optionale Umgebungsvariablen) und auf ein Agent-Badge klicken, um ihn dort zu deployen oder zu entfernen. Deployen schreibt nur den Eintrag dieses einen Servers in die eigene MCP-Config-Datei des Agenten — alle anderen dort schon vorhandenen Einträge, von diesem oder einem anderen Tool, bleiben unangetastet, und vor jedem Schreiben wird ein zeitgestempeltes Backup angelegt. Aktuell unterstützt: Claude Code, Cursor, Windsurf und Claude Desktop."
+      },
+      "plugins": {
+        "title": "Plugins",
+        "description": "Ein Claude-Code-Plugin über Marketplace-Schlüssel, Marketplace-Git-URL und Plugin-ID hinzufügen, dann auf das Agent-Badge klicken, um es dort zu aktivieren oder zu deaktivieren — das registriert den Marketplace und schaltet das Plugin in der eigenen Settings-Datei des Agenten um, genau wie Claude Codes eigener /plugin-Befehl. Klick auf den Pfeil neben einem Plugin lädt und listet die darin enthaltenen Skills. Das Aktiv/Inaktiv-Badge zeigt, ob es aktuell für mindestens einen Agenten aktiviert ist."
       }
     }
   },
@@ -210,6 +220,38 @@
     },
     "credentialsMigrated": "Der in deiner Sicherungs-URL gefundene Zugriffstoken wurde in den System-Schlüsselbund verschoben. Er erscheint in keiner Datei mehr.",
     "restoreSafetyPoint": "Dein vorheriger Zustand wurde als Snapshot {{tag}} gespeichert — du kannst ihn jederzeit aus dem Verlauf wiederherstellen."
+  },
+  "mcp": {
+    "title": "MCP-Server",
+    "subtitle": "Model-Context-Protocol-Server verwalten und festlegen, für welche Agenten sie bereitgestellt sind.",
+    "addServer": "Server hinzufügen",
+    "empty": "Noch keine MCP-Server. Füge einen hinzu, um ihn deinen Agenten zur Verfügung zu stellen.",
+    "edit": "Bearbeiten",
+    "remove": "Entfernen",
+    "deleted": "MCP-Server gelöscht.",
+    "deleteConfirm": "„{{name}}\" endgültig löschen? Entfernt ihn aus jedem Agenten, für den er bereitgestellt ist.",
+    "tool": {
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "windsurf": "Windsurf",
+      "claudeDesktop": "Claude Desktop"
+    },
+    "form": {
+      "addTitle": "MCP-Server hinzufügen",
+      "editTitle": "MCP-Server bearbeiten",
+      "name": "Name",
+      "namePlaceholder": "z. B. filesystem",
+      "command": "Befehl",
+      "commandPlaceholder": "z. B. npx",
+      "args": "Argumente (eines pro Zeile)",
+      "argsPlaceholder": "-y\n@modelcontextprotocol/server-filesystem",
+      "env": "Umgebungsvariablen (KEY=WERT, eine pro Zeile)",
+      "envPlaceholder": "API_KEY=...",
+      "enabled": "Aktiviert",
+      "validationError": "Name und Befehl sind Pflichtfelder.",
+      "created": "MCP-Server erstellt.",
+      "updated": "MCP-Server aktualisiert."
+    }
   },
   "firstRun": {
     "title": "Neu beginnen oder aus einer Sicherung wiederherstellen?",
@@ -440,13 +482,19 @@
       "clickToRemove": "Klicken, um zum Entfernen zu markieren",
       "undoRemove": "Klicken, um diesen Tag zu behalten"
     },
-    "batchHeldBack": "{{count}} Skill(s) wurden unverändert gelassen — ein Update würde Dateien entfernen ({{names}}). Diese einzeln aktualisieren, um zu sehen, was betroffen ist."
+    "batchHeldBack": "{{count}} Skill(s) wurden unverändert gelassen — ein Update würde Dateien entfernen ({{names}}). Diese einzeln aktualisieren, um zu sehen, was betroffen ist.",
+    "pluginSkills": {
+      "soloTab": "Solo Skills",
+      "pluginTab": "Plugin Skills",
+      "noActivePlugins": "Keine aktiven Plugins. Aktiviere ein Plugin auf der Plugins-Seite, um dessen enthaltene Skills hier zu sehen.",
+      "count": "{{count}} Skill(s)"
+    }
   },
   "install": {
     "title": "Skills installieren",
     "browseMarket": "Bestenliste",
     "localInstall": "Lokale Installation",
-    "gitInstall": "Git-Installation",
+    "gitInstall": "Git-Installationen",
     "hot": "Angesagt",
     "trending": "Trend",
     "all": "Gesamtzeit",
@@ -509,6 +557,20 @@
     "gitAlreadyInstalled": "„{{name}}“ ist bereits installiert. Erneutes Installieren aktualisiert es.",
     "onlyThisContributor": "Nur dieser Mitwirkende",
     "installClone": "Klonen & Vorschau",
+    "gitManaged": {
+      "title": "Aus Git installiert",
+      "summary": "{{repoCount}} Repo(s), {{skillCount}} Skill(s) insgesamt.",
+      "addedOn": "Hinzugefügt am {{date}}",
+      "installed": "Installiert",
+      "selectAll": "Alle auswählen",
+      "deselectAll": "Auswahl aufheben",
+      "deleteSelected": "Löschen ({{count}})",
+      "update": "Aktualisieren",
+      "updated": "Skill aktualisiert.",
+      "remove": "Entfernen",
+      "deleted": "{{count}} Skill(s) gelöscht.",
+      "deleteConfirm": "{{count}} ausgewählte Skill(s) endgültig löschen? Entfernt zentrale Bibliotheksdateien, Preset-Verknüpfungen und synchronisierte Agent-Ziele."
+    },
     "gitPreview": {
       "title": "Zu importierende Skills auswählen",
       "description": "Folgende Skills wurden im Repository gefunden. Bei Bedarf umbenennen, dann bestätigen.",
@@ -757,7 +819,8 @@
     "trayIconDesc": "Ein Symbol in der System-Ablage für schnelles Anzeigen und Beenden anzeigen.",
     "trayIcon_on": "Anzeigen",
     "trayIcon_off": "Ausblenden",
-    "trayIconOffHint": "Das Ablage-Symbol ist ausgeblendet, daher beendet das Schließen des Fensters die App."
+    "trayIconOffHint": "Das Ablage-Symbol ist ausgeblendet, daher beendet das Schließen des Fensters die App.",
+    "repoPathHelpHint": "Was ist das? Öffne die Hilfe für eine Erklärung."
   },
   "closeAction": {
     "title": "Schließverhalten",
@@ -1064,5 +1127,32 @@
         "diverged": "Konflikt"
       }
     }
+  },
+  "plugins": {
+    "title": "Plugins",
+    "subtitle": "Marketplace-Plugins verwalten und festlegen, für welche Agenten sie aktiviert sind.",
+    "addPlugin": "Plugin hinzufügen",
+    "empty": "Noch keine Plugins. Füge eines hinzu, um es deinen Agenten zur Verfügung zu stellen.",
+    "remove": "Entfernen",
+    "deleted": "Plugin gelöscht.",
+    "deleteConfirm": "„{{name}}\" endgültig entfernen? Deaktiviert es in jedem Agenten, für den es bereitgestellt ist.",
+    "form": {
+      "addTitle": "Plugin hinzufügen",
+      "marketplaceKey": "Marketplace-Schlüssel",
+      "marketplaceKeyPlaceholder": "z. B. ecc",
+      "marketplaceUrl": "Marketplace-URL",
+      "marketplaceUrlPlaceholder": "https://github.com/user/repo.git",
+      "pluginId": "Plugin-ID",
+      "pluginIdPlaceholder": "z. B. ecc",
+      "name": "Anzeigename (optional)",
+      "namePlaceholder": "z. B. ECC Tools",
+      "validationError": "Marketplace-Schlüssel, Marketplace-URL und Plugin-ID sind Pflichtfelder.",
+      "created": "Plugin hinzugefügt."
+    },
+    "showSkills": "Skills in diesem Plugin anzeigen",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "loadingSkills": "Lade Skills…",
+    "noSkillsFound": "Keine Skills in der Quelle dieses Plugins gefunden."
   }
 }

@@ -13,7 +13,9 @@
     "newPreset": "Nuovo Preset",
     "projects": "Aree di lavoro progetto",
     "addProject": "Collega progetto",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "mcpServers": "Server MCP",
+    "plugins": "Plugin"
   },
   "help": {
     "eyebrow": "Guida",
@@ -30,11 +32,11 @@
       },
       "install": {
         "title": "Installa Skill",
-        "description": "Importa da cartelle locali, repository Git, archivi o dal marketplace. Importa in blocco più skill da una cartella in un colpo solo."
+        "description": "Importa da cartelle locali, repository Git, archivi o dal marketplace. Importa in blocco più skill da una cartella in un colpo solo. La scheda \"Installazioni Git\" elenca ogni skill installata da un repository Git, raggruppata per repository (con la data di aggiunta) e comprimibile per repository — selezionale ed eliminale da lì, e un badge \"Installato\" segnala quelle effettivamente in uso (in un preset, o distribuite a un agente)."
       },
       "sync": {
         "title": "Libreria",
-        "description": "Sfoglia tutte le skill installate con modifica in blocco dei tag e interruttori di sincronizzazione per agente. Filtra per fonte o tag, incluso il tag \"Senza tag\" per trovare le skill prive di etichette. Clicca sull'icona di un agente su una scheda skill per installare o rimuovere quella skill per quell'agente con un clic; il pulsante di eliminazione, sempre visibile, rimuove una skill dalla libreria centrale. Clicca sulla scheda stessa per vedere la documentazione, la cronologia delle versioni e i dettagli di sincronizzazione degli agenti."
+        "description": "Sfoglia tutte le skill installate con modifica in blocco dei tag e interruttori di sincronizzazione per agente. Filtra per fonte o tag, incluso il tag \"Senza tag\" per trovare le skill prive di etichette. Clicca sull'icona di un agente su una scheda skill per installare o rimuovere quella skill per quell'agente con un clic; il pulsante di eliminazione, sempre visibile, rimuove una skill dalla libreria centrale. Clicca sulla scheda stessa per vedere la documentazione, la cronologia delle versioni e i dettagli di sincronizzazione degli agenti. Usa l'interruttore \"Skill singole\" / \"Skill dei plugin\" in alto per passare dalla libreria abituale a una vista in sola lettura delle skill incluse nei tuoi plugin attualmente attivi."
       },
       "global": {
         "title": "Area di lavoro globale",
@@ -51,6 +53,14 @@
       "settings": {
         "title": "Impostazioni",
         "description": "Gestisci i percorsi e gli interruttori degli agenti, aggiungi agenti personalizzati, trascina per riordinare come gli agenti appaiono nell'app, cambia la modalità di sincronizzazione, il tema, la dimensione del testo, la lingua, il proxy, il remote Git, la chiave di ricerca AI e controlla gli aggiornamenti dell'app. Usa Esporta log per raccogliere i log recenti e l'attività di installazione/rimozione/aggiornamento/sincronizzazione in un unico file zip quando segnali un problema."
+      },
+      "mcp": {
+        "title": "Server MCP",
+        "description": "Aggiungi un server Model Context Protocol (nome, comando, argomenti, variabili d'ambiente facoltative) e clicca sul badge di un agente per distribuirlo o rimuoverlo lì. La distribuzione scrive solo la voce di quel server nel file di configurazione MCP proprio dell'agente — qualsiasi altra voce già presente, di quell'agente o di un altro strumento, resta intatta, e viene creato un backup con timestamp prima di ogni scrittura. Attualmente supportati: Claude Code, Cursor, Windsurf e Claude Desktop."
+      },
+      "plugins": {
+        "title": "Plugin",
+        "description": "Aggiungi un plugin Claude Code tramite la chiave del marketplace, l'URL Git del marketplace e l'ID del plugin, poi clicca sul badge di un agente per abilitarlo o disabilitarlo lì — questo registra il marketplace e attiva/disattiva il plugin nel file di impostazioni proprio dell'agente, esattamente come farebbe il comando /plugin di Claude Code. Clicca sulla freccia accanto a un plugin per caricare ed elencare le skill che contiene. Il badge Attivo/Inattivo mostra se è attualmente abilitato su almeno un agente."
       }
     }
   },
@@ -440,13 +450,19 @@
       "clickToRemove": "Clicca per contrassegnare per la rimozione",
       "undoRemove": "Clicca per mantenere questo tag"
     },
-    "batchHeldBack": "{{count}} skill sono state lasciate invariate — aggiornarle rimuoverebbe dei file ({{names}}). Aggiornale una alla volta per vedere quali."
+    "batchHeldBack": "{{count}} skill sono state lasciate invariate — aggiornarle rimuoverebbe dei file ({{names}}). Aggiornale una alla volta per vedere quali.",
+    "pluginSkills": {
+      "soloTab": "Skill singole",
+      "pluginTab": "Skill dei plugin",
+      "noActivePlugins": "Nessun plugin attivo. Abilita un plugin nella pagina Plugin per vedere qui le sue skill incluse.",
+      "count": "{{count}} skill"
+    }
   },
   "install": {
     "title": "Installa Skill",
     "browseMarket": "Classifica",
     "localInstall": "Installazione locale",
-    "gitInstall": "Installazione Git",
+    "gitInstall": "Installazioni Git",
     "hot": "Popolari",
     "trending": "In tendenza",
     "all": "Sempre",
@@ -540,6 +556,20 @@
         "pending": "In sospeso",
         "imported": "Importate"
       }
+    },
+    "gitManaged": {
+      "title": "Installato da Git",
+      "summary": "{{repoCount}} repository, {{skillCount}} skill totali.",
+      "addedOn": "Aggiunto il {{date}}",
+      "installed": "Installato",
+      "selectAll": "Seleziona tutto",
+      "deselectAll": "Deseleziona tutto",
+      "deleteSelected": "Elimina ({{count}})",
+      "update": "Aggiorna",
+      "updated": "Skill aggiornata.",
+      "remove": "Rimuovi",
+      "deleted": "{{count}} skill eliminate.",
+      "deleteConfirm": "Eliminare definitivamente {{count}} skill selezionate? Rimuove i relativi file dalla libreria centrale, i collegamenti ai preset e i target agente sincronizzati."
     }
   },
   "settings": {
@@ -757,7 +787,8 @@
     "trayIconDesc": "Mostra un'icona nella barra di sistema per le azioni rapide Mostra ed Esci.",
     "trayIcon_on": "Mostra",
     "trayIcon_off": "Nascondi",
-    "trayIconOffHint": "L'icona nella barra di sistema è nascosta, quindi chiudere la finestra terminerà l'app."
+    "trayIconOffHint": "L'icona nella barra di sistema è nascosta, quindi chiudere la finestra terminerà l'app.",
+    "repoPathHelpHint": "Cos'è questo? Apri la guida per una spiegazione."
   },
   "closeAction": {
     "title": "Comportamento alla chiusura",
@@ -1063,6 +1094,65 @@
         "centerNewer": "Center modificato",
         "diverged": "Conflitto"
       }
+    }
+  },
+  "mcp": {
+    "title": "Server MCP",
+    "subtitle": "Gestisci i server Model Context Protocol e su quali agenti sono distribuiti.",
+    "addServer": "Aggiungi server",
+    "empty": "Ancora nessun server MCP. Aggiungine uno per renderlo disponibile ai tuoi agenti.",
+    "edit": "Modifica",
+    "remove": "Rimuovi",
+    "deleted": "Server MCP eliminato.",
+    "deleteConfirm": "Eliminare definitivamente \"{{name}}\"? Verrà rimosso da ogni agente su cui è distribuito.",
+    "tool": {
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "windsurf": "Windsurf",
+      "claudeDesktop": "Claude Desktop"
+    },
+    "form": {
+      "addTitle": "Aggiungi server MCP",
+      "editTitle": "Modifica server MCP",
+      "name": "Nome",
+      "namePlaceholder": "es. filesystem",
+      "command": "Comando",
+      "commandPlaceholder": "es. npx",
+      "args": "Argomenti (uno per riga)",
+      "argsPlaceholder": "-y\n@modelcontextprotocol/server-filesystem",
+      "env": "Variabili d'ambiente (CHIAVE=VALORE, una per riga)",
+      "envPlaceholder": "API_KEY=...",
+      "enabled": "Abilitato",
+      "validationError": "Nome e comando sono obbligatori.",
+      "created": "Server MCP creato.",
+      "updated": "Server MCP aggiornato."
+    }
+  },
+  "plugins": {
+    "title": "Plugin",
+    "subtitle": "Gestisci i plugin del marketplace e su quali agenti sono abilitati.",
+    "addPlugin": "Aggiungi plugin",
+    "empty": "Ancora nessun plugin. Aggiungine uno per renderlo disponibile ai tuoi agenti.",
+    "showSkills": "Mostra le skill di questo plugin",
+    "active": "Attivo",
+    "inactive": "Inattivo",
+    "loadingSkills": "Caricamento skill…",
+    "noSkillsFound": "Nessuna skill trovata nella sorgente di questo plugin.",
+    "remove": "Rimuovi",
+    "deleted": "Plugin eliminato.",
+    "deleteConfirm": "Rimuovere definitivamente \"{{name}}\"? Verrà disabilitato su ogni agente su cui è distribuito.",
+    "form": {
+      "addTitle": "Aggiungi plugin",
+      "marketplaceKey": "Chiave marketplace",
+      "marketplaceKeyPlaceholder": "es. ecc",
+      "marketplaceUrl": "URL marketplace",
+      "marketplaceUrlPlaceholder": "https://github.com/user/repo.git",
+      "pluginId": "ID plugin",
+      "pluginIdPlaceholder": "es. ecc",
+      "name": "Nome visualizzato (opzionale)",
+      "namePlaceholder": "es. ECC Tools",
+      "validationError": "Chiave marketplace, URL marketplace e ID plugin sono tutti obbligatori.",
+      "created": "Plugin aggiunto."
     }
   }
 }

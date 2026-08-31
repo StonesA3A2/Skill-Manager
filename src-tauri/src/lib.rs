@@ -1045,6 +1045,20 @@ pub fn run() {
             commands::settings::app_exit,
             commands::settings::restart_app,
             commands::settings::hide_to_tray,
+            // MCP Servers
+            commands::mcp::list_mcp_servers,
+            commands::mcp::create_mcp_server,
+            commands::mcp::update_mcp_server,
+            commands::mcp::delete_mcp_server,
+            commands::mcp::deploy_mcp_server,
+            commands::mcp::undeploy_mcp_server,
+            // Plugins
+            commands::plugins::list_plugins,
+            commands::plugins::create_plugin,
+            commands::plugins::delete_plugin,
+            commands::plugins::deploy_plugin,
+            commands::plugins::undeploy_plugin,
+            commands::plugins::list_plugin_skills,
             // Git Backup
             commands::git_backup::git_backup_fetch,
             commands::git_backup::git_backup_status,

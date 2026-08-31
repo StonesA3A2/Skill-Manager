@@ -13,7 +13,9 @@
     "newPreset": "新增 Preset",
     "projects": "專案工作區",
     "addProject": "關聯專案",
-    "settings": "設定"
+    "settings": "設定",
+    "mcpServers": "MCP 伺服器",
+    "plugins": "外掛"
   },
   "help": {
     "eyebrow": "操作指南",
@@ -30,11 +32,11 @@
       },
       "install": {
         "title": "安裝 Skills",
-        "description": "支援從本機資料夾、Git 倉庫、壓縮檔或市集匯入。支援批次匯入資料夾中的多個 Skill。"
+        "description": "支援從本機資料夾、Git 倉庫、壓縮檔或市集匯入。支援批次匯入資料夾中的多個 Skill。 「Git 安裝」分頁列出你從 Git 儲存庫安裝的所有技能，依儲存庫分組（附加入日期），可依儲存庫摺疊——在此選取並刪除；「已安裝」徽章標記實際使用中的技能（在某個預設集中，或已部署到某個代理）。"
       },
       "sync": {
         "title": "技能庫",
-        "description": "瀏覽所有已安裝的 Skills，支援批次標籤編輯和依 Agent 同步開關。可依來源或標籤篩選，新增的「未標籤」篩選項可快速找出漏打標籤的 Skills。點擊卡片上的 Agent 圖示即可一鍵為該 Agent 安裝或移除這個 Skill；卡片上恆顯示的刪除按鈕可從中央庫整體移除該 Skill。點擊卡片本身可查看文件、版本歷史和 Agent 同步詳情。"
+        "description": "瀏覽所有已安裝的 Skills，支援批次標籤編輯和依 Agent 同步開關。可依來源或標籤篩選，新增的「未標籤」篩選項可快速找出漏打標籤的 Skills。點擊卡片上的 Agent 圖示即可一鍵為該 Agent 安裝或移除這個 Skill；卡片上恆顯示的刪除按鈕可從中央庫整體移除該 Skill。點擊卡片本身可查看文件、版本歷史和 Agent 同步詳情。 使用頂部的「獨立技能」／「外掛技能」切換開關，可在一般技能庫與目前已啟用外掛所包含技能的唯讀檢視之間切換。"
       },
       "global": {
         "title": "全域工作區",
@@ -51,6 +53,14 @@
       "settings": {
         "title": "設定",
         "description": "管理 Agent 路徑與開關、自訂 Agent、拖曳調整 Agent 在全應用中的顯示順序、同步模式、主題字級、語言、網路代理、Git 遠端、AI 搜尋 Key，以及應用更新。可用「匯出日誌」把最近日誌與安裝/移除/更新/同步活動打包成壓縮檔，方便提交 Issue。"
+      },
+      "mcp": {
+        "title": "MCP 伺服器",
+        "description": "新增一個 Model Context Protocol 伺服器（名稱、命令、參數、選填的環境變數），點擊代理徽章即可在該代理上部署或移除它。部署只會寫入這一個伺服器在該代理自身 MCP 設定檔中的項目——檔案中已有的其他項目（無論來自該代理還是其他工具）都不會被更動，且每次寫入前都會建立帶時間戳記的備份。目前支援：Claude Code、Cursor、Windsurf 與 Claude Desktop。"
+      },
+      "plugins": {
+        "title": "外掛",
+        "description": "透過市集金鑰、市集 Git URL 與外掛 ID 新增一個 Claude Code 外掛，然後點擊代理徽章在該代理上啟用或停用它——這會註冊市集並在該代理自身的設定檔中切換外掛狀態，與 Claude Code 內建的 /plugin 指令方式相同。點擊外掛旁的箭頭可載入並列出其中包含的技能。啟用/未啟用徽章顯示此外掛目前是否至少在一個代理上啟用。"
       }
     }
   },
@@ -397,13 +407,19 @@
     "batchDisable": "停用 {{count}} 個",
     "batchEnabled": "已啟用 {{count}} 個 Skill",
     "batchDisabled": "已停用 {{count}} 個 Skill",
-    "batchHeldBack": "有 {{count}} 個 skill 未更新——更新會刪除檔案（{{names}}）。逐個更新可以看到具體是哪些。"
+    "batchHeldBack": "有 {{count}} 個 skill 未更新——更新會刪除檔案（{{names}}）。逐個更新可以看到具體是哪些。",
+    "pluginSkills": {
+      "soloTab": "獨立技能",
+      "pluginTab": "外掛技能",
+      "noActivePlugins": "沒有已啟用的外掛。請在「外掛」頁面啟用一個外掛，即可在此查看其包含的技能。",
+      "count": "{{count}} 個技能"
+    }
   },
   "install": {
     "title": "安裝 Skills",
     "browseMarket": "瀏覽排行榜",
     "localInstall": "本機安裝",
-    "gitInstall": "Git 安裝",
+    "gitInstall": "Git 安裝項",
     "hot": "熱門",
     "trending": "趨勢",
     "all": "全部",
@@ -492,6 +508,20 @@
         "pending": "待匯入",
         "imported": "已匯入"
       }
+    },
+    "gitManaged": {
+      "title": "從 Git 安裝的",
+      "summary": "{{repoCount}} 個儲存庫，共 {{skillCount}} 個技能。",
+      "addedOn": "新增於 {{date}}",
+      "installed": "已安裝",
+      "selectAll": "全選",
+      "deselectAll": "取消全選",
+      "deleteSelected": "刪除（{{count}}）",
+      "update": "更新",
+      "updated": "技能已更新。",
+      "remove": "移除",
+      "deleted": "已刪除 {{count}} 個技能。",
+      "deleteConfirm": "永久刪除選取的 {{count}} 個技能？將移除其中央庫檔案、預設集關聯與已同步的代理目標。"
     }
   },
   "settings": {
@@ -573,7 +603,7 @@
     "help": "說明",
     "website": "官網",
     "about": "關於",
-    "version": "Skills Manager 0.4.0",
+    "version": "Skills Manager 0.5.0",
     "tagline": "跨平台。極簡、高效、無感多 Preset 切換。",
     "checkUpdate": "檢查更新",
     "checking": "檢查中…",
@@ -692,7 +722,8 @@
     "gitErrorRejected": "遠端有新的更新，需要先合併後再同步。",
     "gitErrorUnrelatedHistories": "本機倉庫與遠端倉庫歷史不一致。請打開「修復同步設定」選擇處理方式。",
     "gitErrorNoUpstream": "尚未建立遠端追蹤關係。請打開「修復同步設定」處理。",
-    "gitErrorGeneric": "Git 操作失敗，請檢查設定中的遠端倉庫位址後重試。"
+    "gitErrorGeneric": "Git 操作失敗，請檢查設定中的遠端倉庫位址後重試。",
+    "repoPathHelpHint": "這是什麼？打開說明指南查看解釋。"
   },
   "common": {
     "loading": "載入中...",
@@ -979,6 +1010,65 @@
         "centerNewer": "中心有變更",
         "diverged": "衝突"
       }
+    }
+  },
+  "mcp": {
+    "title": "MCP 伺服器",
+    "subtitle": "管理 Model Context Protocol 伺服器，以及它們部署到了哪些代理。",
+    "addServer": "新增伺服器",
+    "empty": "尚無 MCP 伺服器。新增一個供你的代理使用。",
+    "edit": "編輯",
+    "remove": "移除",
+    "deleted": "MCP 伺服器已刪除。",
+    "deleteConfirm": "永久刪除「{{name}}」？將從其部署到的每個代理中移除。",
+    "tool": {
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "windsurf": "Windsurf",
+      "claudeDesktop": "Claude Desktop"
+    },
+    "form": {
+      "addTitle": "新增 MCP 伺服器",
+      "editTitle": "編輯 MCP 伺服器",
+      "name": "名稱",
+      "namePlaceholder": "例如 filesystem",
+      "command": "命令",
+      "commandPlaceholder": "例如 npx",
+      "args": "參數（每行一個）",
+      "argsPlaceholder": "-y\n@modelcontextprotocol/server-filesystem",
+      "env": "環境變數（KEY=VALUE，每行一個）",
+      "envPlaceholder": "API_KEY=...",
+      "enabled": "已啟用",
+      "validationError": "名稱與命令為必填欄位。",
+      "created": "MCP 伺服器已建立。",
+      "updated": "MCP 伺服器已更新。"
+    }
+  },
+  "plugins": {
+    "title": "外掛",
+    "subtitle": "管理市集外掛，以及它們為哪些代理啟用。",
+    "addPlugin": "新增外掛",
+    "empty": "尚無外掛。新增一個供你的代理使用。",
+    "showSkills": "顯示此外掛中的技能",
+    "active": "已啟用",
+    "inactive": "未啟用",
+    "loadingSkills": "正在載入技能…",
+    "noSkillsFound": "在此外掛的來源中找不到技能。",
+    "remove": "移除",
+    "deleted": "外掛已刪除。",
+    "deleteConfirm": "永久移除「{{name}}」？將在其部署到的每個代理中停用它。",
+    "form": {
+      "addTitle": "新增外掛",
+      "marketplaceKey": "市集金鑰",
+      "marketplaceKeyPlaceholder": "例如 ecc",
+      "marketplaceUrl": "市集 URL",
+      "marketplaceUrlPlaceholder": "https://github.com/user/repo.git",
+      "pluginId": "外掛 ID",
+      "pluginIdPlaceholder": "例如 ecc",
+      "name": "顯示名稱（選填）",
+      "namePlaceholder": "例如 ECC Tools",
+      "validationError": "市集金鑰、市集 URL 與外掛 ID 皆為必填欄位。",
+      "created": "外掛已新增。"
     }
   }
 }

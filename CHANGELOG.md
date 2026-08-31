@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-31
+
+### Release Overview
+- MCP server and Claude Code plugin management, end-to-end: add, deploy/undeploy per agent, and (for plugins) browse the skills bundled inside. Several smaller UX fixes across Settings and Install Skills.
+
+### User-facing
+- **MCP server management** — add a server (name, command, arguments, optional env vars) on the new MCP Servers page and deploy or remove it per agent with one click. Only that server's own entry in the agent's MCP config file is touched; every other entry, from that agent or another tool, is left alone, and a timestamped backup is made before every write. Supported agents: Claude Code, Cursor, Windsurf, Claude Desktop.
+- **Claude Code plugin management** — add a plugin by its marketplace key, marketplace Git URL, and plugin ID on the new Plugins page, then enable or disable it per agent. Expand a plugin to fetch and list the skills it bundles (read from its marketplace manifest, not guessed). An Active/Inactive badge shows whether it's enabled anywhere.
+- **Library: Solo Skills / Plugin Skills** — a switch at the top of the Library flips between your regular skill library and a read-only view of the skills bundled inside your currently active plugins.
+- **Install Skills → Git Installations** — skills installed from Git are now grouped by repository (with the date you added it), collapsible per repo, with an "Installed" badge on the ones actually in use (in a preset, or deployed to an agent) rather than every imported skill.
+- Default language after a fresh install is now English instead of Chinese.
+- Sidebar logo fixed — it was showing an unrelated icon instead of the app's own mark.
+- Settings: the version/update panel no longer clips its text at narrow widths; the Central Repository Path's long inline explanation moved into the Help guide behind a new info icon.
+- Help guide updated with entries for both new features, and for the two enhanced ones above.
+- All of the above is now available in all 10 supported languages, not just English/German.
+
+### Developer & Governance
+- New `core::mcp_adapters` and `core::plugin_adapters` modules; both share a new `core::json_config_io` helper (extracted from the MCP module) for the read → backup → write pattern used to surgically edit one JSON object inside a config file another app also owns.
+- New DB tables: `mcp_servers`, `mcp_server_targets`, `plugin_marketplaces`, `plugins`, `plugin_targets` (migrations v7→v9).
+- New Tauri commands (`commands::mcp`, `commands::plugins`) and CLI subcommands (`mcp`, `plugins`) for both features, including `list_plugin_skills`, which clones a plugin's marketplace repo (reusing the existing git cache) and reads `.claude-plugin/marketplace.json` to resolve the plugin's actual source subpath before scanning it.
+- `vite.config.ts` was missing `server.watch.ignored` for `src-tauri/target` — Vite's watcher raced Cargo's own writes to its build output and could crash `tauri dev` with `EBUSY` on Windows. Fixed.
+- 15 new Rust unit tests across the two new adapter modules (config-merge correctness, backup creation, adapter path resolution); full suite verified at 456/458 (2 pre-existing failures are unrelated Windows symlink-permission tests).
+
 ## [1.34.2] - 2026-08-16
 
 ### Release Overview

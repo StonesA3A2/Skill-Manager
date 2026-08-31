@@ -15,6 +15,7 @@ import {
   Moon,
   Monitor,
   AlertTriangle,
+  Info,
   BookOpen,
   Bug,
   Download,
@@ -1256,8 +1257,17 @@ export function Settings() {
             {/* Repo path */}
             <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
               <div className="min-w-0 flex-1">
-                <h3 className="text-[14px] font-semibold text-primary">{t("settings.repoPath")}</h3>
-                <p className="mt-0.5 text-[12px] text-muted">{t("settings.repoPathDesc")}</p>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-[14px] font-semibold text-primary">{t("settings.repoPath")}</h3>
+                  <button
+                    type="button"
+                    onClick={() => openHelp("settings")}
+                    title={t("settings.repoPathHelpHint")}
+                    className="text-faint transition-colors hover:text-accent"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
               <div className="flex max-w-full flex-wrap items-center gap-2">
                 {editingCentralRepoPath ? (
@@ -1784,21 +1794,18 @@ export function Settings() {
               </div>
             </div>
           )}
-          <div className="app-panel flex flex-wrap items-start justify-between gap-3 p-4">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="app-panel flex flex-wrap items-center gap-3 p-4">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-surface-hover border border-border flex items-center justify-center">
                 <Settings2 className="w-4 h-4 text-accent" />
               </div>
               <div>
                 <h3 className="text-[13px] font-semibold text-primary">{t("settings.version")}</h3>
-                <p className="text-muted text-[13px]">
-                  {t("settings.tagline")}
-                  {appUpdate?.has_update && (
-                    <span className="ml-2 text-amber-500 font-medium">
-                      {t("settings.updateAvailable", { version: appUpdate.latest_version })}
-                    </span>
-                  )}
-                </p>
+                {appUpdate?.has_update && (
+                  <p className="text-[13px] text-amber-500 font-medium">
+                    {t("settings.updateAvailable", { version: appUpdate.latest_version })}
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1852,7 +1859,7 @@ export function Settings() {
               )}
               <button
                 type="button"
-                onClick={openHelp}
+                onClick={() => openHelp()}
                 className={`${actionButtonClass} bg-surface-hover hover:bg-surface-active text-tertiary border-border`}
               >
                 <BookOpen className="w-3 h-3" /> {t("settings.help")}

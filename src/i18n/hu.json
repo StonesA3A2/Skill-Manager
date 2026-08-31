@@ -13,7 +13,9 @@
     "newPreset": "Új preset",
     "projects": "Projekt munkaterületek",
     "addProject": "Projekt hozzákapcsolása",
-    "settings": "Beállítások"
+    "settings": "Beállítások",
+    "mcpServers": "MCP-szerverek",
+    "plugins": "Bővítmények"
   },
   "help": {
     "eyebrow": "Útmutató",
@@ -30,11 +32,11 @@
       },
       "install": {
         "title": "Skillek telepítése",
-        "description": "Importálás helyi mappákból, Git-tárolókból, archívumokból vagy a piactérről. Több skill kötegelt importálása egyszerre egy mappából."
+        "description": "Importálás helyi mappákból, Git-tárolókból, archívumokból vagy a piactérről. Több skill kötegelt importálása egyszerre egy mappából. A „Git-telepítések” fül minden Git-repóból telepített skillt felsorol, repónként csoportosítva (a hozzáadás dátumával), repónként összecsukható — itt jelölhetsz ki és törölhetsz; egy „Telepítve” jelvény jelzi a ténylegesen használtakat (egy preset részeként, vagy egy ügynökön telepítve)."
       },
       "sync": {
         "title": "Könyvtár",
-        "description": "Böngészd az összes telepített skillt tömeges címkeszerkesztéssel és ügynökönkénti szinkronkapcsolókkal. Szűrj forrás vagy címke szerint — beleértve a Címke nélkül pirulát a címke nélküli skillek megjelenítéséhez. Kattints egy ügynökikonra bármelyik skillkártyán, hogy egy kattintással telepítsd vagy eltávolítsd azt a skillt az adott ügynöknél; a mindig látható törlés gomb eltávolítja a skillt a központi könyvtárból. Kattints magára a kártyára a dokumentáció, a verziótörténet és az ügynök-szinkron részletek megtekintéséhez."
+        "description": "Böngészd az összes telepített skillt tömeges címkeszerkesztéssel és ügynökönkénti szinkronkapcsolókkal. Szűrj forrás vagy címke szerint — beleértve a Címke nélkül pirulát a címke nélküli skillek megjelenítéséhez. Kattints egy ügynökikonra bármelyik skillkártyán, hogy egy kattintással telepítsd vagy eltávolítsd azt a skillt az adott ügynöknél; a mindig látható törlés gomb eltávolítja a skillt a központi könyvtárból. Kattints magára a kártyára a dokumentáció, a verziótörténet és az ügynök-szinkron részletek megtekintéséhez. A fent található „Önálló skillek” / „Bővítmény-skillek” kapcsolóval válthatsz a szokásos könyvtárad és a jelenleg aktív bővítményeidben található skillek csak olvasható nézete között."
       },
       "global": {
         "title": "Globális munkaterület",
@@ -51,6 +53,14 @@
       "settings": {
         "title": "Beállítások",
         "description": "Kezeld az ügynökök elérési útjait és kapcsolóit, adj hozzá egyéni ügynököket, húzással rendezd át az ügynökök sorrendjét az alkalmazásban, változtasd meg a szinkronmódot, a témát, a szövegméretet, a nyelvet, a proxyt, a Git remote-ot, az AI keresési kulcsot, és keress alkalmazásfrissítéseket. Használd a Naplók exportálása funkciót, hogy a legutóbbi naplókat és a telepítési/eltávolítási/frissítési/szinkron tevékenységeket egyetlen zip fájlba csomagold hibajelentéshez."
+      },
+      "mcp": {
+        "title": "MCP-szerverek",
+        "description": "Adj hozzá egy Model Context Protocol szervert (név, parancs, argumentumok, opcionális környezeti változók), majd kattints egy ügynök jelvényére, hogy telepítsd vagy eltávolítsd ott. A telepítés csak ennek az egy szervernek a bejegyzését írja be az ügynök saját MCP-konfigurációs fájljába — minden más, már ott lévő bejegyzés (akár ettől, akár másik eszköztől) érintetlen marad, és minden írás előtt időbélyeges biztonsági mentés készül. Jelenleg támogatott: Claude Code, Cursor, Windsurf és Claude Desktop."
+      },
+      "plugins": {
+        "title": "Bővítmények",
+        "description": "Adj hozzá egy Claude Code bővítményt a marketplace-kulcs, a marketplace Git URL-je és a bővítmény-azonosító megadásával, majd kattints egy ügynök jelvényére, hogy ott engedélyezd vagy letiltsd — ez regisztrálja a marketplace-t, és bekapcsolja/kikapcsolja a bővítményt az ügynök saját beállítási fájljában, ugyanúgy, ahogy a Claude Code saját /plugin parancsa tenné. Kattints a bővítmény melletti nyílra a benne lévő skillek betöltéséhez és listázásához. Az Aktív/Inaktív jelvény mutatja, hogy jelenleg legalább egy ügynökön engedélyezve van-e."
       }
     }
   },
@@ -440,13 +450,19 @@
       "clickToRemove": "Kattints, hogy eltávolításra jelöld",
       "undoRemove": "Kattints, hogy megtartsd ezt a címkét"
     },
-    "batchHeldBack": "{{count}} skillt békén hagytunk — a frissítésük fájlokat távolítana el ({{names}}). Frissítsd ezeket egyenként, hogy lásd, mit érint."
+    "batchHeldBack": "{{count}} skillt békén hagytunk — a frissítésük fájlokat távolítana el ({{names}}). Frissítsd ezeket egyenként, hogy lásd, mit érint.",
+    "pluginSkills": {
+      "soloTab": "Önálló skillek",
+      "pluginTab": "Bővítmény-skillek",
+      "noActivePlugins": "Nincs aktív bővítmény. Engedélyezz egyet a Bővítmények oldalon, hogy itt lásd a benne lévő skilleket.",
+      "count": "{{count}} skill"
+    }
   },
   "install": {
     "title": "Skillek telepítése",
     "browseMarket": "Ranglista",
     "localInstall": "Helyi telepítés",
-    "gitInstall": "Git telepítés",
+    "gitInstall": "Git-telepítések",
     "hot": "Népszerű",
     "trending": "Felkapott",
     "all": "Minden idők",
@@ -540,6 +556,20 @@
         "pending": "Függőben",
         "imported": "Importálva"
       }
+    },
+    "gitManaged": {
+      "title": "Git-ről telepítve",
+      "summary": "{{repoCount}} tároló, összesen {{skillCount}} skill.",
+      "addedOn": "Hozzáadva: {{date}}",
+      "installed": "Telepítve",
+      "selectAll": "Összes kijelölése",
+      "deselectAll": "Kijelölés törlése",
+      "deleteSelected": "Törlés ({{count}})",
+      "update": "Frissítés",
+      "updated": "Skill frissítve.",
+      "remove": "Eltávolítás",
+      "deleted": "{{count}} skill törölve.",
+      "deleteConfirm": "Véglegesen törlöd a kijelölt {{count}} skillt? Ez eltávolítja a központi könyvtárfájlokat, a preset-kapcsolatokat és a szinkronizált ügynök-célokat."
     }
   },
   "settings": {
@@ -757,7 +787,8 @@
     "trayIconDesc": "Ikon megjelenítése a rendszer tálcáján a gyors Megjelenítés és Kilépés műveletekhez.",
     "trayIcon_on": "Megjelenítés",
     "trayIcon_off": "Elrejtés",
-    "trayIconOffHint": "A tálcaikon el van rejtve, ezért az ablak bezárása kilép az alkalmazásból."
+    "trayIconOffHint": "A tálcaikon el van rejtve, ezért az ablak bezárása kilép az alkalmazásból.",
+    "repoPathHelpHint": "Ez micsoda? Nyisd meg a súgót a magyarázatért."
   },
   "closeAction": {
     "title": "Bezárási viselkedés",
@@ -1063,6 +1094,65 @@
         "centerNewer": "Centerben módosítva",
         "diverged": "Konfliktus"
       }
+    }
+  },
+  "mcp": {
+    "title": "MCP-szerverek",
+    "subtitle": "Model Context Protocol szerverek kezelése, és hogy mely ügynökökhöz vannak telepítve.",
+    "addServer": "Szerver hozzáadása",
+    "empty": "Még nincs MCP-szerver. Adj hozzá egyet, hogy elérhető legyen az ügynökeid számára.",
+    "edit": "Szerkesztés",
+    "remove": "Eltávolítás",
+    "deleted": "MCP-szerver törölve.",
+    "deleteConfirm": "Véglegesen törlöd a(z) „{{name}}” szervert? Ez eltávolítja minden olyan ügynökből, ahol telepítve van.",
+    "tool": {
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "windsurf": "Windsurf",
+      "claudeDesktop": "Claude Desktop"
+    },
+    "form": {
+      "addTitle": "MCP-szerver hozzáadása",
+      "editTitle": "MCP-szerver szerkesztése",
+      "name": "Név",
+      "namePlaceholder": "pl. filesystem",
+      "command": "Parancs",
+      "commandPlaceholder": "pl. npx",
+      "args": "Argumentumok (soronként egy)",
+      "argsPlaceholder": "-y\n@modelcontextprotocol/server-filesystem",
+      "env": "Környezeti változók (KULCS=ÉRTÉK, soronként egy)",
+      "envPlaceholder": "API_KEY=...",
+      "enabled": "Engedélyezve",
+      "validationError": "A név és a parancs megadása kötelező.",
+      "created": "MCP-szerver létrehozva.",
+      "updated": "MCP-szerver frissítve."
+    }
+  },
+  "plugins": {
+    "title": "Bővítmények",
+    "subtitle": "Marketplace-bővítmények kezelése, és hogy mely ügynökökhöz vannak engedélyezve.",
+    "addPlugin": "Bővítmény hozzáadása",
+    "empty": "Még nincs bővítmény. Adj hozzá egyet, hogy elérhető legyen az ügynökeid számára.",
+    "showSkills": "E bővítmény skilljeinek megjelenítése",
+    "active": "Aktív",
+    "inactive": "Inaktív",
+    "loadingSkills": "Skillek betöltése…",
+    "noSkillsFound": "Nem található skill e bővítmény forrásában.",
+    "remove": "Eltávolítás",
+    "deleted": "Bővítmény törölve.",
+    "deleteConfirm": "Véglegesen eltávolítod a(z) „{{name}}” bővítményt? Ez letiltja minden olyan ügynökön, ahol telepítve van.",
+    "form": {
+      "addTitle": "Bővítmény hozzáadása",
+      "marketplaceKey": "Marketplace-kulcs",
+      "marketplaceKeyPlaceholder": "pl. ecc",
+      "marketplaceUrl": "Marketplace URL",
+      "marketplaceUrlPlaceholder": "https://github.com/user/repo.git",
+      "pluginId": "Bővítmény-azonosító",
+      "pluginIdPlaceholder": "pl. ecc",
+      "name": "Megjelenítendő név (opcionális)",
+      "namePlaceholder": "pl. ECC Tools",
+      "validationError": "A marketplace-kulcs, a marketplace URL és a bővítmény-azonosító megadása kötelező.",
+      "created": "Bővítmény hozzáadva."
     }
   }
 }
