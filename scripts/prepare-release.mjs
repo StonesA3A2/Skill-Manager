@@ -20,9 +20,16 @@ const packagePath = path.join(root, 'package.json');
 const tauriConfPath = path.join(root, 'src-tauri', 'tauri.conf.json');
 const cargoTomlPath = path.join(root, 'src-tauri', 'Cargo.toml');
 const cargoLockPath = path.join(root, 'src-tauri', 'Cargo.lock');
-const enI18nPath = path.join(root, 'src', 'i18n', 'en.json');
-const zhI18nPath = path.join(root, 'src', 'i18n', 'zh.json');
-const zhTwI18nPath = path.join(root, 'src', 'i18n', 'zh-TW.json');
+// All locale files under src/i18n get their settings.version string bumped —
+// not just a hardcoded few, or a release ships with a stale version number
+// baked into whichever language the app happens to be running in (#0.5.0 bug:
+// only en/zh/zh-TW were listed here, so every other language's Settings
+// footer kept reporting the previous version after each release).
+const i18nDir = path.join(root, 'src', 'i18n');
+const i18nPaths = fs
+  .readdirSync(i18nDir)
+  .filter((f) => f.endsWith('.json'))
+  .map((f) => path.join(i18nDir, f));
 const changelogPath = path.join(root, 'CHANGELOG.md');
 const changelogZhPath = path.join(root, 'CHANGELOG-zh.md');
 
@@ -132,9 +139,7 @@ function main() {
   const tauriConf = readJson(tauriConfPath);
   const cargoToml = fs.readFileSync(cargoTomlPath, 'utf8');
   const cargoLock = fs.readFileSync(cargoLockPath, 'utf8');
-  const en = readJson(enI18nPath);
-  const zh = readJson(zhI18nPath);
-  const zhTw = readJson(zhTwI18nPath);
+  const i18nObjs = i18nPaths.map((p) => readJson(p));
   const changelog = fs.readFileSync(changelogPath, 'utf8');
   const changelogZh = fs.readFileSync(changelogZhPath, 'utf8');
 
@@ -145,9 +150,7 @@ function main() {
   tauriConf.version = nextVersion;
   const nextCargoToml = updateCargoPackageVersion(cargoToml, nextVersion);
   const nextCargoLock = updateCargoLockVersion(cargoLock, nextVersion);
-  updateSettingsVersion(en, nextVersion, 'src/i18n/en.json');
-  updateSettingsVersion(zh, nextVersion, 'src/i18n/zh.json');
-  updateSettingsVersion(zhTw, nextVersion, 'src/i18n/zh-TW.json');
+  i18nPaths.forEach((p, i) => updateSettingsVersion(i18nObjs[i], nextVersion, path.relative(root, p)));
   const nextChangelog = ensureChangelogEntry(changelog, nextVersion);
   const nextChangelogZh = ensureChangelogEntry(changelogZh, nextVersion, { zh: true });
 
@@ -160,9 +163,7 @@ function main() {
   writeJson(tauriConfPath, tauriConf);
   fs.writeFileSync(cargoTomlPath, nextCargoToml);
   fs.writeFileSync(cargoLockPath, nextCargoLock);
-  writeJson(enI18nPath, en);
-  writeJson(zhI18nPath, zh);
-  writeJson(zhTwI18nPath, zhTw);
+  i18nPaths.forEach((p, i) => writeJson(p, i18nObjs[i]));
   fs.writeFileSync(changelogPath, nextChangelog);
   fs.writeFileSync(changelogZhPath, nextChangelogZh);
 
@@ -176,9 +177,7 @@ function main() {
   console.log('- src-tauri/tauri.conf.json');
   console.log('- src-tauri/Cargo.toml');
   console.log('- src-tauri/Cargo.lock');
-  console.log('- src/i18n/en.json');
-  console.log('- src/i18n/zh.json');
-  console.log('- src/i18n/zh-TW.json');
+  i18nPaths.forEach((p) => console.log(`- ${path.relative(root, p)}`));
   console.log(
     starOk
       ? '- assets/star-history.svg'

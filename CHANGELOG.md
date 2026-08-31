@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-08-31
+
+### Release Overview
+- Patch release fixing a release-tooling bug: the Settings footer's "Skills Manager X.Y.Z" text was only ever updated in 3 of the 10 supported languages, so most non-English installs kept showing a stale version number after every release.
+
+### User-facing
+- Settings footer now shows the correct version number in every supported language.
+
+### Developer & Governance
+- `scripts/prepare-release.mjs` bumped the `settings.version` string in only `en.json`, `zh.json`, and `zh-TW.json` — now reads every file under `src/i18n/` dynamically.
+- `.github/workflows/prepare-release.yml`'s commit step only staged `en.json` and `zh.json` (not even `zh-TW.json`, `Cargo.lock`, or `CHANGELOG-zh.md`), so the script's local writes to every other locale file were silently dropped before the tag was ever cut — the actual root cause across 0.3.0/0.4.0/1.34.2. Now stages `src/i18n/*.json` plus the other missing files.
+
+### Developer & Governance
+- 
 ## [0.5.0] - 2026-08-31
 
 ### Release Overview

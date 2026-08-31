@@ -1,11 +1,11 @@
 {
-  "version": "0.5.0",
-  "notes": "MCP server & Claude Code plugin management (add, deploy/undeploy per agent; browse a plugin's bundled skills). Library: Solo Skills / Plugin Skills switch. Install Skills: Git Installations now grouped by repo, collapsible, with an accurate Installed badge. Several Settings/UX fixes. All of the above in all 10 supported languages. IMPORTANT: the updater signing key was rotated (the old private key was lost) — this is the first release signed with the new key, so this version cannot verify a signature from a future release using the old chain, but it can install fine as this one download. Existing installs on 0.4.0 or earlier will not auto-update past this point until you download 0.5.0 manually once; auto-update resumes normally after that.",
-  "pub_date": "2026-08-31T07:35:46Z",
+  "version": "0.5.1",
+  "notes": "Patch: fixes the Settings footer version number being stuck on an old value in 7 of the 10 supported languages (release-tooling bug, now fixed for future releases too). No functional changes otherwise.",
+  "pub_date": "2026-08-31T08:22:18Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRUWd6cjIvM3F6Ymh2amZMVUpRN3R1T1RLT0NXcGRUc2YydEJYY3FCbktwQVQyZTNPbzZHY0FNSjc2cEZvMlZUcmdLbjRtaG5LUHBFTzdIUDh3Q3EzMDlNaHlXakhLTndZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4MTYxNjk0CWZpbGU6c2tpbGxzLW1hbmFnZXJfMC41LjBfeDY0LXNldHVwLmV4ZQpKc1k2L3dyMWl5YTVINXo2TjNiY0NqVVY4MEk3b1RpS2FTaGdiRURjYUFySzhSa1VoaG93RUs2UTlzRkN6d1BYQStPTDhnb0JkdlRxRGlLQVZnVXBDZz09Cg==",
-      "url": "https://github.com/StonesA3A2/Skill-Manager/releases/download/v0.5.0/skills-manager_0.5.0_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRUWd6cjIvM3F6Ym5CZXJySUxLalFwMVp3ZDQrTU0zUE5ybXdYTDdJM0Erak5DUGhzYWxzSjMveklxUWh5bWU3MlVYRlIxNjFzUnR6QU9XQS9LRXJCYkRCL1V1clB2SmdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4MTY0NTI3CWZpbGU6c2tpbGxzLW1hbmFnZXJfMC41LjFfeDY0LXNldHVwLmV4ZQpnR0hlNjBwbE8wRDh0bTk0cVY4bVFaWUgrQk9odGxCQU93elZVRHFsdUFqWTN3RHgzc2NYTk9uMyt6a2lxNXhPeUI3RDhHSU1Ib2RMTjU3NjZpZmRDUT09Cg==",
+      "url": "https://github.com/StonesA3A2/Skill-Manager/releases/download/v0.5.1/skills-manager_0.5.1_x64-setup.exe"
     }
   }
 }

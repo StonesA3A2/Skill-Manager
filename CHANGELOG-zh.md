@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.1] - 2026-08-31
+
+### 发布概览
+- 修复发布工具中的一个 Bug：设置页底部「Skills Manager X.Y.Z」文字此前只在 10 种支持语言中的 3 种里被更新，导致大多数非英语安装在每次发布后都显示过期的版本号。
+
+### 用户可见更新
+- 设置页底部现在在所有支持的语言中都能正确显示版本号。
+
+### 开发者与治理更新
+- `scripts/prepare-release.mjs` 此前只更新 `en.json`、`zh.json`、`zh-TW.json` 中的 `settings.version` 字符串——现在会动态读取 `src/i18n/` 下的所有文件。
+- `.github/workflows/prepare-release.yml` 的提交步骤此前只暂存 `en.json` 与 `zh.json`（甚至不含 `zh-TW.json`、`Cargo.lock` 或 `CHANGELOG-zh.md`），导致脚本对其余语言文件的本地写入在打标签前就被悄悄丢弃——这才是 0.3.0/0.4.0/1.34.2 版本中该问题的真正根因。现已改为暂存 `src/i18n/*.json` 及其余缺失文件。
+
+### 开发者与治理更新
+- 
 ## [0.5.0] - 2026-08-31
 
 ### 发布概览
