@@ -15,12 +15,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            target: aarch64-apple-darwin
-            label: macOS-arm64
-          - platform: macos-latest
-            target: x86_64-apple-darwin
-            label: macOS-x64
+          # macOS-arm64/macOS-x64 legs removed 2026-09-10: no Apple Developer
+          # signing/notarization credentials are configured for this repo, so
+          # they failed at "Prepare macOS signing credentials" on every run
+          # and blocked the downstream publish job (needs: build). Re-add
+          # both entries once APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD,
+          # APPLE_SIGNING_IDENTITY, APPLE_API_ISSUER, APPLE_API_KEY and
+          # APPLE_API_KEY_BASE64 are set as repository secrets.
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             label: Linux-x64
@@ -121,7 +122,7 @@ jobs:
             echo ""
             echo "### 当前校验状态"
             echo ""
-            echo "- ✅ 跨平台构建通过（macOS Intel / macOS ARM / Windows x64 / Linux x64）"
+            echo "- ✅ 跨平台构建通过（Windows x64 / Linux x64；macOS 暂未签名，未包含在本次构建中）"
             echo "- ✅ TypeScript typecheck 通过"
             echo ""
             echo "---"
@@ -135,7 +136,7 @@ jobs:
             echo ""
             echo "### Current Verification"
             echo ""
-            echo "- ✅ Cross-platform build passed (macOS Intel / macOS ARM / Windows x64 / Linux x64)"
+            echo "- ✅ Cross-platform build passed (Windows x64 / Linux x64; macOS is unsigned and excluded from this build)"
             echo "- ✅ TypeScript typecheck passed"
             echo ""
             echo "</details>"
@@ -427,10 +428,11 @@ jobs:
             exit 1
           fi
 
+          # macOS legs are removed from the build matrix until Apple Developer
+          # signing/notarization secrets exist (see the matrix comment) — only
+          # the platforms that actually build are asserted here.
           fail=0
           for cli_asset in \
-            skills-manager-cli-macOS-arm64 \
-            skills-manager-cli-macOS-x64 \
             skills-manager-cli-Windows-x64.exe \
             skills-manager-cli-Linux-x64; do
             if ! echo "$asset_names" | grep -qx "$cli_asset"; then
@@ -448,19 +450,13 @@ jobs:
             "https://api.github.com/repos/${REPO}/releases/assets/${asset_id}" -o /tmp/latest.json
 
           # v1.29.0 published with no darwin entries at all because only Windows
-          # and Linux were asserted here, so every shipped platform is checked now.
-          for platform in darwin-aarch64 darwin-x86_64 windows-x86_64 linux-x86_64; do
+          # and Linux were asserted here. macOS legs are removed from the build
+          # matrix for now (no Apple signing secrets configured), so only the
+          # platforms that actually build are checked — re-add darwin-aarch64/
+          # darwin-x86_64 here once macOS is back in the matrix.
+          for platform in windows-x86_64 linux-x86_64; do
             if ! jq -e --arg p "$platform" '.platforms[$p].signature and .platforms[$p].url' /tmp/latest.json >/dev/null; then
               echo "latest.json is missing a signed updater entry for ${platform}" >&2
-              fail=1
-            fi
-          done
-
-          # A macOS leg that dies during notarization still leaves the release
-          # looking plausible, so require its user-facing artifacts too.
-          for pattern in '\.dmg$' '\.app\.tar\.gz$'; do
-            if ! echo "$asset_names" | grep -qE "$pattern"; then
-              echo "Missing macOS asset matching ${pattern}" >&2
               fail=1
             fi
           done
