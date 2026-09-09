@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-09-09
+
+### Release Overview
+- Patch release fixing a dark-mode readability bug in the skill source diff viewer.
+
+### User-facing
+- Diff view (skill source changes, e.g. before installing an update) is now readable in dark mode — added/removed lines previously rendered with near-white text on a light background, making the content effectively invisible.
+
+### Developer & Governance
+- `DocumentDiffViewer.tsx`'s diff row colors used a fixed light background (`#ffebe9`/`#dafbe1`, GitHub-style, does not follow the app theme) combined with a `dark:` text-color override intended for a dark background that never applied here — removed the `dark:` variants so diff text always uses the dark, readable color pairing with its fixed light background.
 ## [0.5.1] - 2026-08-31
 
 ### Release Overview

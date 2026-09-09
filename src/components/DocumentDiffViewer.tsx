@@ -153,20 +153,20 @@ function createHunk(rows: DiffRow[], start: number, end: number, index: number):
 function cellTone(type: DiffRow["type"], side: "left" | "right") {
   if (type === "removed" && side === "left") {
     return {
-      lineNoClass: "text-red-900 dark:text-red-200",
+      lineNoClass: "text-red-900",
       lineNoStyle: { backgroundColor: "#ffd7d5" },
-      codeClass: "text-red-950 dark:text-red-50",
+      codeClass: "text-red-950",
       codeStyle: { backgroundColor: "#ffebe9", boxShadow: "inset 3px 0 0 #cf222e" },
-      markerClass: "text-red-700 dark:text-red-300",
+      markerClass: "text-red-700",
     };
   }
   if (type === "added" && side === "right") {
     return {
-      lineNoClass: "text-emerald-900 dark:text-emerald-200",
+      lineNoClass: "text-emerald-900",
       lineNoStyle: { backgroundColor: "#aceebb" },
-      codeClass: "text-emerald-950 dark:text-emerald-50",
+      codeClass: "text-emerald-950",
       codeStyle: { backgroundColor: "#dafbe1", boxShadow: "inset 3px 0 0 #1a7f37" },
-      markerClass: "text-emerald-700 dark:text-emerald-300",
+      markerClass: "text-emerald-700",
     };
   }
   return {
