@@ -29,11 +29,11 @@ export function Layout() {
   }, []);
 
   // Each route mounts its own content into the same scroll container, so
-  // switching menus must reset the button state — otherwise it stays
-  // visible (or hidden) based on the previous menu's scroll position.
+  // switching menus scrolls back to the top. The scroll listener above then
+  // resets the button state; setting it here would be a synchronous setState
+  // in an effect (react-hooks/set-state-in-effect).
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
-    setShowScrollTop(false);
   }, [location.pathname]);
 
   // Cmd+, to open Settings
