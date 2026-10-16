@@ -652,7 +652,7 @@
     "help": "Súgó",
     "website": "Weboldal",
     "about": "Névjegy",
-    "version": "Skills Manager 0.5.2",
+    "version": "Skills Manager 0.5.3",
     "tagline": "Platformfüggetlen. Minimalista, hatékony, zökkenőmentes preset-váltás.",
     "checkUpdate": "Frissítések keresése",
     "checking": "Ellenőrzés…",
@@ -818,7 +818,8 @@
     "search": "Keresés",
     "goToSettings": "Beállítások",
     "expandAll": "Összes megjelenítése",
-    "collapse": "Összecsukás"
+    "collapse": "Összecsukás",
+    "scrollToTop": "Ugrás a tetejére"
   },
   "addFromLibrary": {
     "title": "Hozzáadás a könyvtárból",
@@ -925,6 +926,8 @@
     "resetFromCenterSuccess": "\"{{name}}\" visszaállítva a center verzióra",
     "alreadyInCenter": "A Centerben",
     "syncStatus": {
+      "filterLabel": "Állapot",
+      "allStatuses": "Minden állapot",
       "projectOnly": "Csak projekt",
       "inSync": "Szinkronban",
       "projectNewer": "A projekt újabb",

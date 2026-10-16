@@ -166,6 +166,7 @@ export function ProjectDetail() {
   const [filterMode, setFilterMode] = useState<"all" | "enabled" | "disabled">("all");
   const [search, setSearch] = useState("");
   const [tagFilters, setTagFilters] = useState<Set<string>>(new Set());
+  const [statusFilters, setStatusFilters] = useState<Set<ProjectSkill["sync_status"]>>(new Set());
   const [detailSkill, setDetailSkill] = useState<ProjectSkillGroup | null>(null);
   const [docContent, setDocContent] = useState<string | null>(null);
   const [docLoading, setDocLoading] = useState(false);
@@ -322,11 +323,32 @@ export function ProjectDetail() {
         const matchTag = skill.tags.some((tag) => tagFilters.has(tag));
         if (!matchUntagged && !matchTag) return false;
       }
+      if (statusFilters.size > 0 && !statusFilters.has(skill.status)) return false;
       if (filterMode === "enabled") return skill.enabledCount > 0;
       if (filterMode === "disabled") return skill.enabledCount === 0;
       return true;
     });
-  }, [groupedSkills, search, filterMode, tagFilters]);
+  }, [groupedSkills, search, filterMode, tagFilters, statusFilters]);
+
+  const availableStatuses = useMemo(() => {
+    const order: ProjectSkill["sync_status"][] = [
+      "in_sync",
+      "project_newer",
+      "center_newer",
+      "diverged",
+      "project_only",
+    ];
+    const present = new Set(groupedSkills.map((skill) => skill.status));
+    return order.filter((status) => present.has(status));
+  }, [groupedSkills]);
+
+  useEffect(() => {
+    setStatusFilters((prev) => {
+      const available = new Set(availableStatuses);
+      const next = new Set([...prev].filter((status) => available.has(status)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [availableStatuses]);
 
   const {
     isMultiSelect, setIsMultiSelect,
@@ -1001,6 +1023,46 @@ export function ProjectDetail() {
                   )}
                 >
                   {tag}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {availableStatuses.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[12px] text-muted">{t("project.syncStatus.filterLabel")}</span>
+            <button
+              onClick={() => setStatusFilters(new Set())}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-[12px] font-medium transition-colors",
+                statusFilters.size === 0
+                  ? "bg-accent text-white dark:bg-accent dark:text-white"
+                  : "bg-surface-hover text-muted hover:text-secondary"
+              )}
+            >
+              {t("project.syncStatus.allStatuses")}
+            </button>
+            {availableStatuses.map((status) => {
+              const meta = getSyncStatusMeta(t, status);
+              const active = statusFilters.has(status);
+              return (
+                <button
+                  key={status}
+                  onClick={() => {
+                    setStatusFilters((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(status)) next.delete(status);
+                      else next.add(status);
+                      return next;
+                    });
+                  }}
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[12px] font-medium transition-colors",
+                    active ? meta.className : "bg-surface-hover text-muted hover:text-secondary"
+                  )}
+                >
+                  {meta.label}
                 </button>
               );
             })}

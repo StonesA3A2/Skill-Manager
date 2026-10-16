@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-10-16
+
+### Release Overview
+- Patch release: fixes the in-app updater not persisting an update across restarts, speeds up and makes visible "Update all" in My Skills, and adds a sync-status filter and a scroll-to-top button.
+
+### User-facing
+- In-app update now restarts the app right after the installer ran. Before, the app stayed open with its executable locked, the installer silently could not replace it, and the app came back on the old version.
+- My Skills → "Update all": the button shows progress (for example `12 / 214`) and the list refreshes while the update runs, so the counter now goes down.
+- "Update all" fetches each repository once for all of its skills instead of once per skill, which removes most of the time for libraries with many skills from the same repository (for example 100+ skills from one repo).
+- Skills that fail with "repository is busy" are retried once at the end of the batch instead of being reported as failed straight away.
+- A skill whose repository could not be fetched is now marked as an error instead of staying on "updating".
+- Project detail: the skill list can be filtered by sync status (in sync, center newer, project newer, diverged, project only).
+- New "Scroll to top" button in all views once the list is scrolled down.
+- GitHub release notes are now English first, with the Chinese version in a collapsed section.
+
+### Developer & Governance
+- `Settings.tsx` `handleAutoUpdate`: calls `api.restartApp()` directly after `downloadAndInstall()` instead of offering a restart toast, because the NSIS installer cannot overwrite a running, locked `.exe` on Windows.
+- `commands/skills.rs`: `batch_update_skills` groups git skills by `RemoteKey` and processes each group against one shared checkout (`update_git_skill_impl` with `SharedCheckout`; `update_git_skill_internal` keeps its signature). It emits a `batch-update-progress` event (`current`, `total`, `name`) after each skill and retries "busy" skills once.
+- `update_git_skill_impl` now writes the error check state when `clone_repo_ref` fails, instead of returning with the skill left on "updating".
+- `.github/workflows/release.yml`: release body built English first; Chinese notes moved into a `<details>` block.
+- i18n: added `project.syncStatus.filterLabel`, `project.syncStatus.allStatuses` and `common.scrollToTop` in all 10 locales.
+- Checked with `tsc --noEmit` and `cargo check --lib`; the batch update path has not been exercised against real remotes yet.
+
 ## [0.5.2] - 2026-09-09
 
 ### Release Overview

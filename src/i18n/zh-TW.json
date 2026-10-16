@@ -603,7 +603,7 @@
     "help": "說明",
     "website": "官網",
     "about": "關於",
-    "version": "Skills Manager 0.5.2",
+    "version": "Skills Manager 0.5.3",
     "tagline": "跨平台。極簡、高效、無感多 Preset 切換。",
     "checkUpdate": "檢查更新",
     "checking": "檢查中…",
@@ -745,7 +745,8 @@
     "create": "建立",
     "goToSettings": "設定",
     "expandAll": "展開全部",
-    "collapse": "收合"
+    "collapse": "收合",
+    "scrollToTop": "回到頂部"
   },
   "addFromLibrary": {
     "title": "從技能庫新增",
@@ -846,6 +847,8 @@
     "resetFromCenterSuccess": "「{{name}}」已還原為中心版本",
     "alreadyInCenter": "已在中心",
     "syncStatus": {
+      "filterLabel": "狀態",
+      "allStatuses": "全部狀態",
       "projectOnly": "僅專案",
       "inSync": "與中心一致",
       "projectNewer": "專案較新",

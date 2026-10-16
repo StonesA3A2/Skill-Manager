@@ -652,7 +652,7 @@
     "help": "Help",
     "website": "Website",
     "about": "Over",
-    "version": "Skills Manager 0.5.2",
+    "version": "Skills Manager 0.5.3",
     "tagline": "Platformonafhankelijk. Minimaal, efficiënt, naadloos wisselen tussen meerdere presets.",
     "checkUpdate": "Controleren op updates",
     "checking": "Controleren…",
@@ -818,7 +818,8 @@
     "search": "Zoeken",
     "goToSettings": "Instellingen",
     "expandAll": "Alles tonen",
-    "collapse": "Inklappen"
+    "collapse": "Inklappen",
+    "scrollToTop": "Scroll naar boven"
   },
   "addFromLibrary": {
     "title": "Toevoegen vanuit bibliotheek",
@@ -925,6 +926,8 @@
     "resetFromCenterSuccess": "\"{{name}}\" hersteld naar centerversie",
     "alreadyInCenter": "In Center",
     "syncStatus": {
+      "filterLabel": "Status",
+      "allStatuses": "Alle statussen",
       "projectOnly": "Alleen project",
       "inSync": "Gesynchroniseerd",
       "projectNewer": "Project nieuwer",

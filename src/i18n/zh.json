@@ -652,7 +652,7 @@
     "help": "帮助",
     "website": "官网",
     "about": "关于",
-    "version": "Skills Manager 0.5.2",
+    "version": "Skills Manager 0.5.3",
     "tagline": "跨平台。极简、高效、无感多 Preset 切换。",
     "checkUpdate": "检查更新",
     "checking": "检查中…",
@@ -818,7 +818,8 @@
     "search": "搜索",
     "goToSettings": "设置",
     "expandAll": "展开全部",
-    "collapse": "收起"
+    "collapse": "收起",
+    "scrollToTop": "回到顶部"
   },
   "addFromLibrary": {
     "title": "从技能库添加",
@@ -925,6 +926,8 @@
     "resetFromCenterSuccess": "\"{{name}}\" 已恢复为中心版本",
     "alreadyInCenter": "已在中心",
     "syncStatus": {
+      "filterLabel": "状态",
+      "allStatuses": "全部状态",
       "projectOnly": "仅项目",
       "inSync": "与中心一致",
       "projectNewer": "项目较新",

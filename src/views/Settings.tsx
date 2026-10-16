@@ -702,21 +702,13 @@ export function Settings() {
       }
       toast.info(t("settings.installing"));
       await update.downloadAndInstall();
-      // Installing was the user's choice; restarting is a second one. Offered
-      // as a toast action rather than a modal so a stray keypress cannot end
-      // the session mid-task, and it stays up until acted on.
-      toast.success(t("settings.restartToApply"), {
-        id: RESTART_TOAST_ID,
-        duration: Infinity,
-        action: {
-          label: t("settings.restartNow"),
-          onClick: () => {
-            api.restartApp().catch((err) => {
-              toast.error(getErrorMessage(err, t("common.error")));
-            });
-          },
-        },
-      });
+      // The installer cannot overwrite our own running .exe (Windows file
+      // lock), so it silently no-ops if we stay open and only restart later
+      // on a toast click — the app then still reports the old version after
+      // that "successful" update. Restart immediately, right after install.
+      toast.success(t("settings.restartToApply"), { id: RESTART_TOAST_ID });
+      await api.restartApp();
+      return;
     } catch (err) {
       console.error("In-app update failed:", err);
       toast.error(t("settings.updateError"));

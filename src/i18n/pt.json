@@ -652,7 +652,7 @@
     "help": "Ajuda",
     "website": "Site",
     "about": "Sobre",
-    "version": "Skills Manager 0.5.2",
+    "version": "Skills Manager 0.5.3",
     "tagline": "Multiplataforma. Mínimo, eficiente, alternância fluida entre múltiplos presets.",
     "checkUpdate": "Verificar Atualizações",
     "checking": "Verificando…",
@@ -818,7 +818,8 @@
     "search": "Buscar",
     "goToSettings": "Configurações",
     "expandAll": "Mostrar tudo",
-    "collapse": "Recolher"
+    "collapse": "Recolher",
+    "scrollToTop": "Voltar ao topo"
   },
   "addFromLibrary": {
     "title": "Adicionar da Biblioteca",
@@ -925,6 +926,8 @@
     "resetFromCenterSuccess": "\"{{name}}\" restaurada para a versão da central",
     "alreadyInCenter": "Na Central",
     "syncStatus": {
+      "filterLabel": "Status",
+      "allStatuses": "Todos os status",
       "projectOnly": "Somente projeto",
       "inSync": "Sincronizado",
       "projectNewer": "Projeto mais recente",

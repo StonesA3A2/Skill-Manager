@@ -5,6 +5,29 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.3] - 2026-10-16
+
+### 发布概览
+- 修复补丁：修复应用内更新重启后未生效的问题，加快并可视化“我的技能”中的“全部更新”，并新增同步状态筛选与回到顶部按钮。
+
+### 用户可见更新
+- 应用内更新现在会在安装程序运行后立即重启应用。此前应用仍保持打开、可执行文件被锁定，安装程序无法静默替换，重启后仍是旧版本。
+- 我的技能 →“全部更新”：按钮显示进度（例如 `12 / 214`），更新过程中列表会刷新，计数会随之减少。
+- “全部更新”对同一仓库只获取一次并用于其所有技能，而不再逐个技能获取，对同一仓库含大量技能（例如 100+）的库节省大部分时间。
+- 因“仓库忙”失败的技能会在批处理末尾重试一次，而不是立即报告失败。
+- 仓库获取失败的技能现在会标记为错误，而不是一直停留在“更新中”。
+- 项目详情：技能列表可按同步状态筛选（已同步、中心较新、项目较新、已分叉、仅项目）。
+- 列表向下滚动后，所有视图新增“回到顶部”按钮。
+- GitHub 发布说明现以英文为主，中文版本放入折叠区域。
+
+### 开发者与治理更新
+- `Settings.tsx` 的 `handleAutoUpdate`：在 `downloadAndInstall()` 之后直接调用 `api.restartApp()`，不再显示重启提示 toast，因为 Windows 上 NSIS 安装程序无法覆盖正在运行且被锁定的 `.exe`。
+- `commands/skills.rs`：`batch_update_skills` 按 `RemoteKey` 对 git 技能分组，每组共用一次检出（`update_git_skill_impl` 配合 `SharedCheckout`；`update_git_skill_internal` 签名不变）。每个技能完成后发出 `batch-update-progress` 事件（`current`、`total`、`name`），并对“忙”的技能重试一次。
+- `update_git_skill_impl` 在 `clone_repo_ref` 失败时写入错误检查状态，而不是带着“更新中”状态直接返回。
+- `.github/workflows/release.yml`：发布正文改为英文优先，中文说明移入 `<details>` 区块。
+- i18n：在全部 10 种语言中新增 `project.syncStatus.filterLabel`、`project.syncStatus.allStatuses` 与 `common.scrollToTop`。
+- 已通过 `tsc --noEmit` 与 `cargo check --lib` 检查；批量更新路径尚未针对真实远程仓库验证。
+
 ## [0.5.2] - 2026-09-09
 
 ### 发布概览

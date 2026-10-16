@@ -24,6 +24,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
+import { listen } from "@tauri-apps/api/event";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -163,6 +164,7 @@ export function MySkills() {
   const [checkingSkillId, setCheckingSkillId] = useState<string | null>(null);
   const [updatingSkillId, setUpdatingSkillId] = useState<string | null>(null);
   const [batchUpdating, setBatchUpdating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   const [toolToggles, setToolToggles] = useState<SkillToolToggle[] | null>(null);
   const [togglingToolKey, setTogglingToolKey] = useState<string | null>(null);
   const [togglingTarget, setTogglingTarget] = useState<{ skillId: string; tool: string } | null>(null);
@@ -638,6 +640,29 @@ export function MySkills() {
     await Promise.all([refreshManagedSkills(), refreshPresets()]);
   };
 
+  // The backend reports after every skill; reloading the whole list that often
+  // would cost more than the update itself, so it is refreshed at most every 20s.
+  useEffect(() => {
+    if (!batchUpdating) return;
+    let lastRefresh = Date.now();
+    let refreshing = false;
+    const unlistenPromise = listen<{ current: number; total: number }>(
+      "batch-update-progress",
+      (event) => {
+        setBatchProgress({ current: event.payload.current, total: event.payload.total });
+        if (refreshing || Date.now() - lastRefresh < 20000) return;
+        refreshing = true;
+        void refreshManagedSkills().finally(() => {
+          lastRefresh = Date.now();
+          refreshing = false;
+        });
+      }
+    );
+    return () => {
+      void unlistenPromise.then((unlisten) => unlisten()).catch(() => {});
+    };
+  }, [batchUpdating, refreshManagedSkills]);
+
   const handleBatchRefresh = async () => {
     const refreshableSkills = skills.filter((skill) => selectedIds.has(skill.id) && canRefresh(skill));
     if (refreshableSkills.length === 0) return;
@@ -667,6 +692,7 @@ export function MySkills() {
     } finally {
       await refreshManagedSkills();
       setBatchUpdating(false);
+      setBatchProgress(null);
     }
   };
 
@@ -711,6 +737,7 @@ export function MySkills() {
     } finally {
       await refreshManagedSkills();
       setBatchUpdating(false);
+      setBatchProgress(null);
     }
   };
 
@@ -1131,7 +1158,9 @@ export function MySkills() {
             className="mr-2 inline-flex items-center gap-1 rounded-md px-3 py-2 text-[13px] font-medium text-accent-light transition-colors hover:bg-accent-bg disabled:opacity-50"
           >
             <RotateCcw className={cn("h-3.5 w-3.5", batchUpdating && "animate-spin")} />
-            {t("mySkills.updateActions.updateAvailable", { count: availableUpdateCount })}
+            {batchUpdating && batchProgress
+              ? `${batchProgress.current} / ${batchProgress.total}`
+              : t("mySkills.updateActions.updateAvailable", { count: availableUpdateCount })}
           </button>
           <button
             onClick={() => setViewMode("grid")}

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tauri::State;
 use walkdir::WalkDir;
 
@@ -1568,66 +1568,189 @@ pub async fn reimport_local_skill(
 pub async fn batch_update_skills(
     skill_ids: Vec<String>,
     store: State<'_, Arc<SkillStore>>,
+    app_handle: tauri::AppHandle,
 ) -> Result<BatchUpdateSkillsResult, AppError> {
     let store = store.inner().clone();
     let proxy_url = store.proxy_url();
     tauri::async_runtime::spawn_blocking(move || {
-        let mut refreshed = 0usize;
-        let mut unchanged = 0usize;
-        let mut failed = Vec::new();
-        let mut held_back = Vec::new();
+        use tauri::Emitter;
+
+        #[derive(Default)]
+        struct Tally {
+            refreshed: usize,
+            unchanged: usize,
+            failed: Vec<String>,
+            held_back: Vec<String>,
+            done: usize,
+        }
+
+        let total = skill_ids.len();
+        let mut tally = Tally::default();
+        let progress = |tally: &mut Tally, name: &str| {
+            tally.done += 1;
+            app_handle
+                .emit(
+                    "batch-update-progress",
+                    serde_json::json!({ "current": tally.done, "total": total, "name": name }),
+                )
+                .ok();
+        };
+        let record_git = |tally: &mut Tally, name: &str, outcome: Result<UpdateSkillResult, AppError>| match outcome {
+            Ok(result) if !result.pending_removals.is_empty() => {
+                // Held back rather than applied: it would have taken away
+                // files the new version does not have, and a batch has nobody
+                // to ask.
+                tally.held_back.push(name.to_string());
+            }
+            Ok(result) => {
+                if result.content_changed {
+                    tally.refreshed += 1;
+                } else {
+                    tally.unchanged += 1;
+                }
+            }
+            Err(err) => tally.failed.push(format!("{name}: {}", err.message)),
+        };
+
+        // Git skills are grouped by remote so each repository is fetched once
+        // for all of its skills — one `google/skills` checkout instead of one
+        // per skill.
+        let mut groups: Vec<(RemoteKey, Vec<(String, String)>)> = Vec::new();
+        let mut group_index: HashMap<RemoteKey, usize> = HashMap::new();
+        let mut local_skills: Vec<(String, String)> = Vec::new();
 
         for skill_id in skill_ids {
             let skill = match store.get_skill_by_id(&skill_id).map_err(AppError::db)? {
                 Some(skill) => skill,
                 None => {
-                    failed.push(format!("{skill_id}: Skill not found"));
+                    tally.failed.push(format!("{skill_id}: Skill not found"));
+                    progress(&mut tally, &skill_id);
                     continue;
                 }
             };
-
             match skill.source_type.as_str() {
-                "git" | "skillssh" => {
-                    let outcome =
-                        update_git_skill_internal(&store, &skill_id, proxy_url.as_deref(), None, None);
-                    log_update_outcome(&store, &skill_id, "git", outcome.as_ref());
-                    match outcome {
-                        Ok(result) if !result.pending_removals.is_empty() => {
-                            // Held back rather than applied: it would have taken
-                            // away files the new version does not have, and a
-                            // batch has nobody to ask.
-                            held_back.push(skill.name.clone());
+                "git" | "skillssh" => match git_source_from_skill(&skill) {
+                    Ok(source) => {
+                        let key = RemoteKey::from(source);
+                        let idx = *group_index.entry(key.clone()).or_insert_with(|| {
+                            groups.push((key, Vec::new()));
+                            groups.len() - 1
+                        });
+                        groups[idx].1.push((skill_id, skill.name.clone()));
+                    }
+                    Err(err) => {
+                        tally.failed.push(format!("{}: {}", skill.name, err.message));
+                        progress(&mut tally, &skill.name);
+                    }
+                },
+                "local" | "import" => local_skills.push((skill_id, skill.name.clone())),
+                _ => {
+                    tally
+                        .failed
+                        .push(format!("{}: Source type cannot be refreshed", skill.name));
+                    progress(&mut tally, &skill.name);
+                }
+            }
+        }
+
+        // Skills that lost the repository lock to other work. They are tried
+        // again at the end rather than reported as failed straight away.
+        let mut busy: Vec<(String, String)> = Vec::new();
+
+        for (key, members) in groups {
+            let fetched = (|| -> Result<(PathBuf, String), AppError> {
+                git_fetcher::validate_git_url(&key.clone_url).map_err(AppError::git)?;
+                let revision = git_fetcher::resolve_remote_revision(
+                    &key.clone_url,
+                    key.branch.as_deref(),
+                    proxy_url.as_deref(),
+                )
+                .map_err(|e| AppError::git(e.to_string()))?;
+                let dir = git_fetcher::clone_repo_ref(
+                    &key.clone_url,
+                    key.branch.as_deref(),
+                    None,
+                    proxy_url.as_deref(),
+                )
+                .map_err(AppError::classify_git_error)?;
+                if let Err(e) = git_fetcher::checkout_revision(&dir, &revision) {
+                    git_fetcher::cleanup_temp(&dir);
+                    return Err(AppError::git(e.to_string()));
+                }
+                Ok((dir, revision))
+            })();
+
+            match fetched {
+                Ok((dir, revision)) => {
+                    let shared = SharedCheckout {
+                        dir: &dir,
+                        revision: &revision,
+                    };
+                    for (skill_id, name) in members {
+                        let outcome = update_git_skill_impl(
+                            &store,
+                            &skill_id,
+                            proxy_url.as_deref(),
+                            None,
+                            None,
+                            Some(&shared),
+                        );
+                        if outcome.as_ref().err().is_some_and(|e| e.message.contains("busy")) {
+                            busy.push((skill_id, name));
+                            continue;
                         }
-                        Ok(result) => {
-                            if result.content_changed {
-                                refreshed += 1;
-                            } else {
-                                unchanged += 1;
-                            }
-                        }
-                        Err(err) => failed.push(format!("{}: {}", skill.name, err.message)),
+                        log_update_outcome(&store, &skill_id, "git", outcome.as_ref());
+                        record_git(&mut tally, &name, outcome);
+                        progress(&mut tally, &name);
+                    }
+                    git_fetcher::cleanup_temp(&dir);
+                }
+                Err(err) => {
+                    for (skill_id, name) in members {
+                        let _ = store.update_skill_check_state(
+                            &skill_id,
+                            None,
+                            "error",
+                            Some(&err.message),
+                        );
+                        let outcome = Err(AppError::git(err.message.clone()));
+                        log_update_outcome(&store, &skill_id, "git", outcome.as_ref());
+                        record_git(&mut tally, &name, outcome);
+                        progress(&mut tally, &name);
                     }
                 }
-                "local" | "import" => {
-                    let outcome = reimport_local_skill_internal(&store, &skill_id, None);
-                    log_reimport_outcome(&store, &skill_id, outcome.as_ref());
-                    match outcome {
-                        Ok(result) if !result.pending_removals.is_empty() => {
-                            held_back.push(skill.name.clone());
-                        }
-                        Ok(_) => refreshed += 1,
-                        Err(err) => failed.push(format!("{}: {}", skill.name, err.message)),
-                    }
+            }
+        }
+
+        for (skill_id, name) in local_skills {
+            let outcome = reimport_local_skill_internal(&store, &skill_id, None);
+            log_reimport_outcome(&store, &skill_id, outcome.as_ref());
+            match outcome {
+                Ok(result) if !result.pending_removals.is_empty() => {
+                    tally.held_back.push(name.clone());
                 }
-                _ => failed.push(format!("{}: Source type cannot be refreshed", skill.name)),
+                Ok(_) => tally.refreshed += 1,
+                Err(err) => tally.failed.push(format!("{name}: {}", err.message)),
+            }
+            progress(&mut tally, &name);
+        }
+
+        if !busy.is_empty() {
+            std::thread::sleep(Duration::from_secs(5));
+            for (skill_id, name) in busy {
+                let outcome =
+                    update_git_skill_internal(&store, &skill_id, proxy_url.as_deref(), None, None);
+                log_update_outcome(&store, &skill_id, "git", outcome.as_ref());
+                record_git(&mut tally, &name, outcome);
+                progress(&mut tally, &name);
             }
         }
 
         Ok(BatchUpdateSkillsResult {
-            refreshed,
-            unchanged,
-            failed,
-            held_back,
+            refreshed: tally.refreshed,
+            unchanged: tally.unchanged,
+            failed: tally.failed,
+            held_back: tally.held_back,
         })
     })
     .await?
@@ -1872,6 +1995,25 @@ pub fn update_git_skill_internal(
     cancel: Option<&Arc<AtomicBool>>,
     approved_removals: Option<&str>,
 ) -> Result<UpdateSkillResult, AppError> {
+    update_git_skill_impl(store, skill_id, proxy_url, cancel, approved_removals, None)
+}
+
+/// A repository checkout already fetched and checked out at `revision`, shared
+/// by every skill of a batch that comes from the same remote. Owned by the
+/// batch, which also removes it.
+struct SharedCheckout<'a> {
+    dir: &'a Path,
+    revision: &'a str,
+}
+
+fn update_git_skill_impl(
+    store: &SkillStore,
+    skill_id: &str,
+    proxy_url: Option<&str>,
+    cancel: Option<&Arc<AtomicBool>>,
+    approved_removals: Option<&str>,
+    shared: Option<&SharedCheckout<'_>>,
+) -> Result<UpdateSkillResult, AppError> {
     let skill = store
         .get_skill_by_id(skill_id)
         .map_err(AppError::db)?
@@ -1884,36 +2026,60 @@ pub fn update_git_skill_internal(
     }
 
     let git_source = git_source_from_skill(&skill)?;
-    git_fetcher::validate_git_url(&git_source.clone_url).map_err(AppError::git)?;
-    let remote_revision = git_fetcher::resolve_remote_revision(
-        &git_source.clone_url,
-        git_source.branch.as_deref(),
-        proxy_url,
-    )
-    .map_err(|e| {
-        let message = e.to_string();
-        let _ = store.update_skill_check_state(
-            skill_id,
-            skill.remote_revision.as_deref(),
-            "error",
-            Some(&message),
-        );
-        AppError::git(message)
-    })?;
+    let (remote_revision, temp_dir) = match shared {
+        Some(shared) => {
+            store
+                .update_skill_update_status(skill_id, "updating")
+                .map_err(AppError::db)?;
+            (shared.revision.to_string(), shared.dir.to_path_buf())
+        }
+        None => {
+            git_fetcher::validate_git_url(&git_source.clone_url).map_err(AppError::git)?;
+            let remote_revision = git_fetcher::resolve_remote_revision(
+                &git_source.clone_url,
+                git_source.branch.as_deref(),
+                proxy_url,
+            )
+            .map_err(|e| {
+                let message = e.to_string();
+                let _ = store.update_skill_check_state(
+                    skill_id,
+                    skill.remote_revision.as_deref(),
+                    "error",
+                    Some(&message),
+                );
+                AppError::git(message)
+            })?;
 
-    store
-        .update_skill_update_status(skill_id, "updating")
-        .map_err(AppError::db)?;
+            store
+                .update_skill_update_status(skill_id, "updating")
+                .map_err(AppError::db)?;
 
-    let temp_dir = git_fetcher::clone_repo_ref(
-        &git_source.clone_url,
-        git_source.branch.as_deref(),
-        cancel,
-        proxy_url,
-    )
-    .map_err(AppError::classify_git_error)?;
+            // A failed clone used to return here with the skill still marked
+            // "updating", which then stayed that way until the next check.
+            let temp_dir = git_fetcher::clone_repo_ref(
+                &git_source.clone_url,
+                git_source.branch.as_deref(),
+                cancel,
+                proxy_url,
+            )
+            .map_err(|e| {
+                let err = AppError::classify_git_error(e);
+                let _ = store.update_skill_check_state(
+                    skill_id,
+                    Some(&remote_revision),
+                    "error",
+                    Some(&err.message),
+                );
+                err
+            })?;
+            (remote_revision, temp_dir)
+        }
+    };
     let update_result = (|| -> Result<UpdateOutcome, AppError> {
-        git_fetcher::checkout_revision(&temp_dir, &remote_revision).map_err(AppError::git)?;
+        if shared.is_none() {
+            git_fetcher::checkout_revision(&temp_dir, &remote_revision).map_err(AppError::git)?;
+        }
         let skill_dir = resolve_skill_dir(
             &temp_dir,
             git_source.subpath.as_deref(),
@@ -2019,7 +2185,9 @@ pub fn update_git_skill_internal(
         }
         Ok(UpdateOutcome::Applied { content_changed })
     })();
-    git_fetcher::cleanup_temp(&temp_dir);
+    if shared.is_none() {
+        git_fetcher::cleanup_temp(&temp_dir);
+    }
 
     match update_result {
         Ok(outcome) => {
