@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::State;
@@ -1564,6 +1564,51 @@ pub async fn reimport_local_skill(
     .await?
 }
 
+/// Message of the error returned when a batch update is requested while one is
+/// already running. The frontend matches on it to show a translated notice.
+pub const BATCH_UPDATE_RUNNING_MESSAGE: &str = "BATCH_UPDATE_RUNNING";
+
+static BATCH_UPDATE_RUNNING: AtomicBool = AtomicBool::new(false);
+
+/// Claims the single batch-update slot. Two batches at once fought over the
+/// repository lock ("repository is busy") and re-fetched the same repos.
+fn try_claim_batch_slot() -> bool {
+    BATCH_UPDATE_RUNNING
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_ok()
+}
+
+fn release_batch_slot() {
+    BATCH_UPDATE_RUNNING.store(false, Ordering::SeqCst);
+}
+
+/// Holds the batch slot and tells the UI when the batch is over, whichever way
+/// it ends (normal return, early `?`, panic).
+struct BatchRunGuard {
+    app_handle: tauri::AppHandle,
+}
+
+impl BatchRunGuard {
+    fn try_begin(app_handle: &tauri::AppHandle) -> Option<Self> {
+        try_claim_batch_slot().then(|| BatchRunGuard {
+            app_handle: app_handle.clone(),
+        })
+    }
+}
+
+impl Drop for BatchRunGuard {
+    fn drop(&mut self) {
+        use tauri::Emitter;
+        release_batch_slot();
+        self.app_handle.emit("batch-update-done", ()).ok();
+    }
+}
+
+#[tauri::command]
+pub fn is_batch_update_running() -> bool {
+    BATCH_UPDATE_RUNNING.load(Ordering::SeqCst)
+}
+
 #[tauri::command]
 pub async fn batch_update_skills(
     skill_ids: Vec<String>,
@@ -1574,6 +1619,12 @@ pub async fn batch_update_skills(
     let proxy_url = store.proxy_url();
     tauri::async_runtime::spawn_blocking(move || {
         use tauri::Emitter;
+
+        let Some(_run_guard) = BatchRunGuard::try_begin(&app_handle) else {
+            return Err(AppError::invalid_input(BATCH_UPDATE_RUNNING_MESSAGE));
+        };
+        // Declared after the run guard so it is dropped first.
+        let _watcher_mute = crate::core::file_watcher::BatchMuteGuard::begin();
 
         #[derive(Default)]
         struct Tally {
@@ -1743,6 +1794,19 @@ pub async fn batch_update_skills(
                 log_update_outcome(&store, &skill_id, "git", outcome.as_ref());
                 record_git(&mut tally, &name, outcome);
                 progress(&mut tally, &name);
+            }
+        }
+
+        // Every skill of the batch skipped its own metadata write; do it once.
+        // Unchanged files are left alone, so this is cheap when little changed.
+        if tally.refreshed + tally.unchanged > 0 {
+            match RepoLock::acquire_foreground("write sync metadata") {
+                Ok(_lock) => {
+                    if let Err(err) = sync_metadata::write_all_from_db_unlocked(&store) {
+                        log::warn!("batch update: writing sync metadata failed: {err}");
+                    }
+                }
+                Err(err) => log::warn!("batch update: sync metadata not written: {err}"),
             }
         }
 
@@ -2166,7 +2230,10 @@ fn update_git_skill_impl(
                 )
                 .map_err(AppError::db)?;
             resync_copy_targets(store, &skill.id)?;
-            sync_metadata::write_all_from_db_unlocked(store).map_err(AppError::db)?;
+            // A batch writes the metadata once at the end instead of once per skill.
+            if shared.is_none() {
+                sync_metadata::write_all_from_db_unlocked(store).map_err(AppError::db)?;
+            }
         } else {
             store
                 .update_skill_source_metadata(
@@ -2181,7 +2248,9 @@ fn update_git_skill_impl(
                 .update_skill_check_state(&skill.id, Some(&remote_revision), "up_to_date", None)
                 .map_err(AppError::db)?;
             resync_copy_targets(store, &skill.id)?;
-            sync_metadata::write_all_from_db_unlocked(store).map_err(AppError::db)?;
+            if shared.is_none() {
+                sync_metadata::write_all_from_db_unlocked(store).map_err(AppError::db)?;
+            }
         }
         Ok(UpdateOutcome::Applied { content_changed })
     })();
@@ -3342,6 +3411,19 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::{tempdir, TempDir};
+
+    #[test]
+    fn only_one_batch_update_may_run_at_a_time() {
+        assert!(!is_batch_update_running());
+        assert!(try_claim_batch_slot());
+        assert!(is_batch_update_running());
+        // A second batch is refused while the first one holds the slot.
+        assert!(!try_claim_batch_slot());
+        release_batch_slot();
+        assert!(!is_batch_update_running());
+        assert!(try_claim_batch_slot());
+        release_batch_slot();
+    }
 
     struct TestRepo {
         _lock: std::sync::MutexGuard<'static, ()>,

@@ -600,19 +600,34 @@ pub(crate) fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>> {
 }
 
 fn atomic_write_json<T: Serialize>(path: &Path, value: &T) -> Result<()> {
+    let bytes = canonical_json_bytes(value)?;
+    atomic_write_bytes_if_changed(path, &bytes)?;
+    Ok(())
+}
+
+/// Writes `bytes` to `path` via temp file + rename, unless the file already
+/// holds exactly these bytes. Every skill update used to rewrite all ~1000
+/// metadata files with an fsync each, although almost none had changed, which
+/// saturated the disk (and every write also woke the file watcher).
+/// Returns whether the file was written.
+fn atomic_write_bytes_if_changed(path: &Path, bytes: &[u8]) -> Result<bool> {
+    if let Ok(existing) = fs::read(path) {
+        if existing == bytes {
+            return Ok(false);
+        }
+    }
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let bytes = canonical_json_bytes(value)?;
     let tmp = path.with_extension(format!("json.tmp.{}", uuid::Uuid::now_v7()));
     {
         let mut file = fs::File::create(&tmp)?;
-        file.write_all(&bytes)?;
+        file.write_all(bytes)?;
         file.sync_all()?;
     }
     fs::rename(&tmp, path)?;
     sync_parent_dir(path)?;
-    Ok(())
+    Ok(true)
 }
 
 fn sync_parent_dir(path: &Path) -> Result<()> {
@@ -652,6 +667,25 @@ mod tests {
     use crate::core::{central_repo, skill_store::SkillStore};
     use std::sync::MutexGuard;
     use tempfile::{TempDir, tempdir};
+
+    #[test]
+    fn unchanged_metadata_file_is_not_rewritten() {
+        let tmp = tempdir().unwrap();
+        let path = tmp.path().join("nested").join("skill.json");
+
+        assert!(atomic_write_bytes_if_changed(&path, b"{\"a\":1}").unwrap());
+        assert!(!atomic_write_bytes_if_changed(&path, b"{\"a\":1}").unwrap());
+        assert!(atomic_write_bytes_if_changed(&path, b"{\"a\":2}").unwrap());
+        assert_eq!(fs::read(&path).unwrap(), b"{\"a\":2}");
+
+        // No temp files are left behind by either path.
+        let leftovers: Vec<_> = fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().contains(".tmp."))
+            .collect();
+        assert!(leftovers.is_empty());
+    }
 
     struct TestRepo {
         _lock: MutexGuard<'static, ()>,

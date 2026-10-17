@@ -515,7 +515,8 @@
       "pluginTab": "Plugin Skills",
       "noActivePlugins": "No active plugins. Enable a plugin on the Plugins page to see its bundled skills here.",
       "count": "{{count}} skill(s)"
-    }
+    },
+    "batchAlreadyRunning": "A batch update is already running."
   },
   "install": {
     "title": "Install Skills",
@@ -712,7 +713,7 @@
     "help": "Help",
     "website": "Website",
     "about": "About",
-    "version": "Skills Manager 0.5.3",
+    "version": "Skills Manager 0.5.4",
     "tagline": "Cross-platform. Minimal, efficient, seamless multi-preset switching.",
     "checkUpdate": "Check for Updates",
     "checking": "Checking…",

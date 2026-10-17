@@ -130,7 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshManagedSkills = useCallback(async () => {
+  const loadManagedSkills = useCallback(async () => {
     try {
       const skills = await api.getManagedSkills();
       setManagedSkills(skills);
@@ -139,15 +139,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error("Failed to load managed skills:", e);
       setTranslatedError("common.skills");
     }
+  }, [setTranslatedError]);
+
+  const refreshManagedSkills = useCallback(async () => {
+    await loadManagedSkills();
     // Managed skill changes affect project sync health badges
     refreshProjects();
-  }, [setTranslatedError, refreshProjects]);
+  }, [loadManagedSkills, refreshProjects]);
 
+  // Loads the projects once: going through refreshManagedSkills here would
+  // fetch them a second time, and with the skill list at ~8s per call that
+  // doubled the work of every refresh.
   const refreshAppData = useCallback(async () => {
     setLoading(true);
-    await Promise.all([refreshPresets(), refreshTools(), refreshManagedSkills(), refreshProjects()]);
+    await Promise.all([refreshPresets(), refreshTools(), loadManagedSkills(), refreshProjects()]);
     setLoading(false);
-  }, [refreshManagedSkills, refreshProjects, refreshPresets, refreshTools]);
+  }, [loadManagedSkills, refreshProjects, refreshPresets, refreshTools]);
 
   const setViewedPresetId = useCallback((id: string) => {
     setViewedPresetIdState(id);
@@ -227,13 +234,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    // Never run two filesystem-triggered refreshes at once. A refresh takes
+    // seconds, and each one that overlapped the next change event started
+    // another on top (up to 6 in parallel while a batch update was writing).
+    // Changes that arrive meanwhile collapse into a single follow-up refresh.
+    let running = false;
+    let queued = false;
+
+    const runRefresh = async () => {
+      if (running) {
+        queued = true;
+        return;
+      }
+      running = true;
+      try {
+        do {
+          queued = false;
+          await refreshAppData();
+        } while (queued);
+      } finally {
+        running = false;
+      }
+    };
 
     const unlistenPromise = listen("app-files-changed", () => {
       if (refreshTimer) {
         clearTimeout(refreshTimer);
       }
       refreshTimer = setTimeout(() => {
-        refreshAppData().catch((error) => {
+        runRefresh().catch((error) => {
           console.error("Failed to refresh after filesystem change:", error);
         });
       }, 500);

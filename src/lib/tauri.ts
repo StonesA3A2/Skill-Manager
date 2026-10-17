@@ -454,6 +454,12 @@ export interface BatchUpdateSkillsResult {
 export const batchUpdateSkills = (skillIds: string[]) =>
   invoke<BatchUpdateSkillsResult>("batch_update_skills", { skillIds });
 
+/** Whether a batch update is running right now (it keeps going when the view is left). */
+export const isBatchUpdateRunning = () => invoke<boolean>("is_batch_update_running");
+
+/** Error message the backend returns when a batch is requested while one is running. */
+export const BATCH_UPDATE_RUNNING = "BATCH_UPDATE_RUNNING";
+
 export interface ReimportSkillResult {
   skill: ManagedSkill;
   /** Non-empty means nothing was changed — see UpdateSkillResult. */

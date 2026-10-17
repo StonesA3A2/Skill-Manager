@@ -413,7 +413,8 @@
       "pluginTab": "外掛技能",
       "noActivePlugins": "沒有已啟用的外掛。請在「外掛」頁面啟用一個外掛，即可在此查看其包含的技能。",
       "count": "{{count}} 個技能"
-    }
+    },
+    "batchAlreadyRunning": "已有批次更新正在執行。"
   },
   "install": {
     "title": "安裝 Skills",
@@ -603,7 +604,7 @@
     "help": "說明",
     "website": "官網",
     "about": "關於",
-    "version": "Skills Manager 0.5.3",
+    "version": "Skills Manager 0.5.4",
     "tagline": "跨平台。極簡、高效、無感多 Preset 切換。",
     "checkUpdate": "檢查更新",
     "checking": "檢查中…",

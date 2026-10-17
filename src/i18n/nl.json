@@ -456,7 +456,8 @@
       "pluginTab": "Plugin-skills",
       "noActivePlugins": "Geen actieve plugins. Schakel een plugin in op de Plugins-pagina om hier de bijbehorende skills te zien.",
       "count": "{{count}} skill(s)"
-    }
+    },
+    "batchAlreadyRunning": "Er loopt al een bulkupdate."
   },
   "install": {
     "title": "Skills installeren",
@@ -652,7 +653,7 @@
     "help": "Help",
     "website": "Website",
     "about": "Over",
-    "version": "Skills Manager 0.5.3",
+    "version": "Skills Manager 0.5.4",
     "tagline": "Platformonafhankelijk. Minimaal, efficiënt, naadloos wisselen tussen meerdere presets.",
     "checkUpdate": "Controleren op updates",
     "checking": "Controleren…",

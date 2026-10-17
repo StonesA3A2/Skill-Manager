@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-10-17
+
+### Release Overview
+- Patch release: stops "Update all" from slowing the whole PC down, and makes it safe to leave the view or click twice while it runs.
+
+### User-facing
+- "Update all" no longer makes the PC slow while it runs. Each skill update used to rewrite about 1000 metadata files (every one flushed to disk) and every write triggered a full reload of the skill list, so up to 6 reloads ran at once for hours.
+- Only one "Update all" can run at a time. A second click, or a click after leaving and re-entering the view, now shows "A batch update is already running." instead of starting a second run that fought the first over the repository ("repository is busy").
+- The button keeps showing the progress (for example `12 / 214`) after you leave the view and come back, and the list reloads once when the run is done.
+- Filesystem changes no longer start overlapping reloads of the skill list; changes that arrive during a reload are collapsed into one follow-up reload.
+
+### Developer & Governance
+- `sync_metadata.rs`: `atomic_write_json` now goes through `atomic_write_bytes_if_changed` and skips files whose bytes are unchanged. The metadata holds no timestamps, so after the first write almost nothing is rewritten.
+- `commands/skills.rs`: batch updates skip the per-skill `write_all_from_db_unlocked` and write the metadata once at the end. A single batch slot (`BATCH_UPDATE_RUNNING`) refuses a second batch with the message `BATCH_UPDATE_RUNNING`; `BatchRunGuard` releases it on every exit path and emits `batch-update-done`. New command `is_batch_update_running`.
+- `file_watcher.rs`: `BatchMuteGuard` mutes watcher events under the central library while a batch runs, plus a short trailing mute afterwards.
+- `AppContext.tsx`: filesystem-triggered refreshes run one at a time with a single queued follow-up; `refreshAppData` loads the projects once (`loadManagedSkills` no longer triggers a second `getProjects`).
+- `MySkills.tsx`: batch state is rebuilt from the backend on mount (`isBatchUpdateRunning`, `batch-update-progress`, `batch-update-done`). New i18n key `mySkills.batchAlreadyRunning` in all 10 locales.
+- Checked with `cargo check --lib --locked`, 50 targeted Rust tests, `tsc --noEmit` and ESLint on the changed files; not yet exercised in a real "Update all" run. `zh-TW.json` still lacks 72 keys that exist in `en.json` (pre-existing).
+
 ## [0.5.3] - 2026-10-16
 
 ### Release Overview

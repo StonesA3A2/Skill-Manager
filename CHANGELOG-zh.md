@@ -5,6 +5,25 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.4] - 2026-10-17
+
+### 发布概览
+- 修复补丁：“全部更新”不再拖慢整台电脑，并且在运行过程中离开页面或重复点击也是安全的。
+
+### 用户可见更新
+- “全部更新”运行时不再让电脑变慢。此前每个技能更新都会重写约 1000 个元数据文件（每个都强制写盘），且每次写入都会触发技能列表的完整重新加载，导致数小时内最多 6 个重新加载同时进行。
+- 同一时间只能运行一个“全部更新”。再次点击，或离开页面后再回来点击，现在会提示“已有批量更新正在运行”，而不会启动第二次运行去与第一次争抢仓库（“repository is busy”）。
+- 离开页面再回来后，按钮仍显示进度（例如 `12 / 214`），运行结束时列表会重新加载一次。
+- 文件系统变化不再触发相互重叠的技能列表重新加载；重新加载期间到达的变化会合并为一次后续重新加载。
+
+### 开发者与治理更新
+- `sync_metadata.rs`：`atomic_write_json` 现经由 `atomic_write_bytes_if_changed` 写入，字节未变化的文件会被跳过。元数据不含时间戳，因此首次写入后几乎不再重写任何文件。
+- `commands/skills.rs`：批量更新跳过逐个技能的 `write_all_from_db_unlocked`，仅在结束时写入一次元数据。单一批量槽位（`BATCH_UPDATE_RUNNING`）以消息 `BATCH_UPDATE_RUNNING` 拒绝第二个批量；`BatchRunGuard` 在所有退出路径释放该槽位并发出 `batch-update-done`。新增命令 `is_batch_update_running`。
+- `file_watcher.rs`：`BatchMuteGuard` 在批量运行期间屏蔽中央库下的监视事件，结束后再短暂屏蔽一段时间。
+- `AppContext.tsx`：由文件系统触发的刷新一次只运行一个，并只保留一次排队的后续刷新；`refreshAppData` 只加载一次项目（`loadManagedSkills` 不再触发第二次 `getProjects`）。
+- `MySkills.tsx`：挂载时从后端重建批量状态（`isBatchUpdateRunning`、`batch-update-progress`、`batch-update-done`）。在全部 10 种语言中新增 i18n 键 `mySkills.batchAlreadyRunning`。
+- 已通过 `cargo check --lib --locked`、50 个针对性 Rust 测试、`tsc --noEmit` 与对改动文件的 ESLint 检查；尚未在真实的“全部更新”运行中验证。`zh-TW.json` 仍缺少 `en.json` 中的 72 个键（此前已存在）。
+
 ## [0.5.3] - 2026-10-16
 
 ### 发布概览

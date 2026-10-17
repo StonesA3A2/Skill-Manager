@@ -456,7 +456,8 @@
       "pluginTab": "Bővítmény-skillek",
       "noActivePlugins": "Nincs aktív bővítmény. Engedélyezz egyet a Bővítmények oldalon, hogy itt lásd a benne lévő skilleket.",
       "count": "{{count}} skill"
-    }
+    },
+    "batchAlreadyRunning": "Már fut egy tömeges frissítés."
   },
   "install": {
     "title": "Skillek telepítése",
@@ -652,7 +653,7 @@
     "help": "Súgó",
     "website": "Weboldal",
     "about": "Névjegy",
-    "version": "Skills Manager 0.5.3",
+    "version": "Skills Manager 0.5.4",
     "tagline": "Platformfüggetlen. Minimalista, hatékony, zökkenőmentes preset-váltás.",
     "checkUpdate": "Frissítések keresése",
     "checking": "Ellenőrzés…",

@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -84,8 +85,49 @@ fn classify_mute(
 }
 
 fn classify_event_paths(event_paths: &[PathBuf]) -> MuteVerdict {
+    if classify_batch_mute(
+        BATCH_MUTE.load(Ordering::SeqCst) > 0,
+        &central_repo::skills_dir(),
+        event_paths,
+    ) {
+        return MuteVerdict::SelfWrite;
+    }
     let state = mute_state().lock().unwrap();
     classify_mute(now_ms(), state.deadline_ms, &state.roots, event_paths)
+}
+
+/// Number of batch operations (e.g. "Update all") currently rewriting the
+/// central library. While one runs, every change under the library is the
+/// batch's own echo: the per-event 1.2s mute cannot cover a batch that writes
+/// for minutes, and each echo used to trigger a full UI refresh (a refresh
+/// storm with up to 6 overlapping refreshes).
+static BATCH_MUTE: AtomicUsize = AtomicUsize::new(0);
+
+/// Holds the batch mute for its lifetime. When the last guard drops, a short
+/// trailing self-write mute swallows the final echoes still in flight.
+pub struct BatchMuteGuard;
+
+impl BatchMuteGuard {
+    pub fn begin() -> Self {
+        BATCH_MUTE.fetch_add(1, Ordering::SeqCst);
+        BatchMuteGuard
+    }
+}
+
+impl Drop for BatchMuteGuard {
+    fn drop(&mut self) {
+        BATCH_MUTE.fetch_sub(1, Ordering::SeqCst);
+        mute_self_writes(&central_repo::skills_dir());
+    }
+}
+
+/// Pure predicate: while a batch is active, an event is the batch's own echo
+/// when every path it names is under the central library. Path-less events
+/// (watch-set rescans) never qualify.
+fn classify_batch_mute(batch_active: bool, skills_dir: &Path, event_paths: &[PathBuf]) -> bool {
+    batch_active
+        && !event_paths.is_empty()
+        && event_paths.iter().all(|path| path.starts_with(skills_dir))
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -382,6 +424,25 @@ mod tests {
         assert!(!muted_at(11, 10));
         // A zeroed deadline (never muted) is never active.
         assert!(!muted_at(0, 0));
+    }
+
+    #[test]
+    fn batch_mute_covers_only_library_paths_while_active() {
+        use super::classify_batch_mute;
+        use std::path::{Path, PathBuf};
+
+        let lib = Path::new("/lib/skills");
+        let inside = vec![PathBuf::from("/lib/skills/a/SKILL.md")];
+        let mixed = vec![
+            PathBuf::from("/lib/skills/a/SKILL.md"),
+            PathBuf::from("/other/b.md"),
+        ];
+
+        assert!(classify_batch_mute(true, lib, &inside));
+        assert!(!classify_batch_mute(false, lib, &inside));
+        // A foreign path in the same event, or no path at all, still surfaces.
+        assert!(!classify_batch_mute(true, lib, &mixed));
+        assert!(!classify_batch_mute(true, lib, &[]));
     }
 
     #[test]

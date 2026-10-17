@@ -456,7 +456,8 @@
       "pluginTab": "Skills de plugins",
       "noActivePlugins": "Aucun plugin actif. Activez un plugin dans la page Plugins pour voir ici ses skills inclus.",
       "count": "{{count}} skill(s)"
-    }
+    },
+    "batchAlreadyRunning": "Une mise à jour groupée est déjà en cours."
   },
   "install": {
     "title": "Installer des skills",
@@ -652,7 +653,7 @@
     "help": "Aide",
     "website": "Site web",
     "about": "À propos",
-    "version": "Skills Manager 0.5.3",
+    "version": "Skills Manager 0.5.4",
     "tagline": "Multiplateforme. Minimaliste, efficace, changement fluide entre plusieurs presets.",
     "checkUpdate": "Vérifier les mises à jour",
     "checking": "Vérification…",

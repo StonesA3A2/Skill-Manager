@@ -456,7 +456,8 @@
       "pluginTab": "插件技能",
       "noActivePlugins": "没有已启用的插件。请在“插件”页面启用一个插件，即可在此查看其包含的技能。",
       "count": "{{count}} 个技能"
-    }
+    },
+    "batchAlreadyRunning": "已有批量更新正在运行。"
   },
   "install": {
     "title": "安装 Skills",
@@ -652,7 +653,7 @@
     "help": "帮助",
     "website": "官网",
     "about": "关于",
-    "version": "Skills Manager 0.5.3",
+    "version": "Skills Manager 0.5.4",
     "tagline": "跨平台。极简、高效、无感多 Preset 切换。",
     "checkUpdate": "检查更新",
     "checking": "检查中…",

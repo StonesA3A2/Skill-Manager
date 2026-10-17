@@ -640,15 +640,25 @@ export function MySkills() {
     await Promise.all([refreshManagedSkills(), refreshPresets()]);
   };
 
-  // The backend reports after every skill; reloading the whole list that often
-  // would cost more than the update itself, so it is refreshed at most every 20s.
+  // A batch update lives in the backend and keeps running when this view is left,
+  // so the state is rebuilt from the backend on every mount instead of being
+  // trusted from a click. Progress arrives after every skill; reloading the whole
+  // list that often would cost more than the update itself, so it is refreshed at
+  // most every 20s (the list is also refreshed once when the batch is done).
   useEffect(() => {
-    if (!batchUpdating) return;
+    let alive = true;
     let lastRefresh = Date.now();
     let refreshing = false;
-    const unlistenPromise = listen<{ current: number; total: number }>(
+    api
+      .isBatchUpdateRunning()
+      .then((running) => {
+        if (alive && running) setBatchUpdating(true);
+      })
+      .catch(() => {});
+    const unlistenProgress = listen<{ current: number; total: number }>(
       "batch-update-progress",
       (event) => {
+        setBatchUpdating(true);
         setBatchProgress({ current: event.payload.current, total: event.payload.total });
         if (refreshing || Date.now() - lastRefresh < 20000) return;
         refreshing = true;
@@ -658,10 +668,17 @@ export function MySkills() {
         });
       }
     );
+    const unlistenDone = listen("batch-update-done", () => {
+      setBatchUpdating(false);
+      setBatchProgress(null);
+      void refreshManagedSkills();
+    });
     return () => {
-      void unlistenPromise.then((unlisten) => unlisten()).catch(() => {});
+      alive = false;
+      void unlistenProgress.then((unlisten) => unlisten()).catch(() => {});
+      void unlistenDone.then((unlisten) => unlisten()).catch(() => {});
     };
-  }, [batchUpdating, refreshManagedSkills]);
+  }, [refreshManagedSkills]);
 
   const handleBatchRefresh = async () => {
     const refreshableSkills = skills.filter((skill) => selectedIds.has(skill.id) && canRefresh(skill));
@@ -688,12 +705,16 @@ export function MySkills() {
         toast.error(t("mySkills.batchUpdateFailed", { count: result.failed.length }));
       }
     } catch (error: unknown) {
+      if (getErrorMessage(error, "") === api.BATCH_UPDATE_RUNNING) {
+        // The batch that is already running owns the button state; leave it alone.
+        toast.info(t("mySkills.batchAlreadyRunning"));
+        return;
+      }
       toast.error(getErrorMessage(error, t("common.error")));
-    } finally {
-      await refreshManagedSkills();
-      setBatchUpdating(false);
-      setBatchProgress(null);
     }
+    await refreshManagedSkills();
+    setBatchUpdating(false);
+    setBatchProgress(null);
   };
 
   /** The update the user has been asked to confirm, and what it would remove. */
@@ -733,12 +754,16 @@ export function MySkills() {
         toast.error(t("mySkills.batchUpdateFailed", { count: result.failed.length }));
       }
     } catch (error: unknown) {
+      if (getErrorMessage(error, "") === api.BATCH_UPDATE_RUNNING) {
+        // The batch that is already running owns the button state; leave it alone.
+        toast.info(t("mySkills.batchAlreadyRunning"));
+        return;
+      }
       toast.error(getErrorMessage(error, t("common.error")));
-    } finally {
-      await refreshManagedSkills();
-      setBatchUpdating(false);
-      setBatchProgress(null);
     }
+    await refreshManagedSkills();
+    setBatchUpdating(false);
+    setBatchProgress(null);
   };
 
   const handleTogglePreset = async (skill: ManagedSkill) => {
