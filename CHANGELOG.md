@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-10-17
+
+### Release Overview
+- Patch release: Hermes Agent is detected on Windows, and skills are deployed into the folder Hermes actually reads.
+
+### User-facing
+- Hermes Agent now shows up as installed on Windows. Skills Manager looked for it in `~/.hermes`, but Hermes on Windows keeps its data in `%LOCALAPPDATA%\hermes`, so it was reported as missing and deployments went to a folder Hermes never reads.
+- The location follows Hermes' own rules: the `HERMES_HOME` environment variable if set, otherwise `%LOCALAPPDATA%\hermes` on Windows and `~/.hermes` on macOS/Linux (including `HERMES_DATA_DIR_SUFFIX`). On Windows an existing `~/.hermes` is still used as a last fallback.
+
+### Developer & Governance
+- `src-tauri/src/core/tool_adapters.rs`: paths under `.hermes` resolve through `hermes_home_candidates()`, which mirrors `get_hermes_home()` in hermes-agent's `hermes_constants.py`. Other agents are unchanged; project-level `.hermes/skills` paths are unaffected.
+- Two new unit tests cover the resolution order, `~` expansion, the data-dir suffix and a blank `HERMES_HOME`. Checked: `cargo test` for `core::tool_adapters`, `core::project_scanner`, `core::file_watcher`, and a freshly built CLI reporting Hermes as installed at `%LOCALAPPDATA%\hermes\skills`. Deploying a skill to Hermes through the app is not yet verified.
+- Note: deployments are flat (`skills\<name>`), while Hermes' bundled skills live in category folders; a skill copied by hand into a category folder and also deployed by the app exists twice.
+
 ## [0.5.5] - 2026-10-17
 
 ### Release Overview

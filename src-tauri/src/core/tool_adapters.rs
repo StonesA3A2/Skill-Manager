@@ -64,6 +64,19 @@ impl ToolAdapter {
     }
 
     fn candidate_paths(relative: &str) -> Vec<PathBuf> {
+        if let Some(rest) = hermes_relative_rest(relative) {
+            return hermes_home_candidates(
+                std::env::var("HERMES_HOME").ok().as_deref(),
+                std::env::var("HERMES_DATA_DIR_SUFFIX").ok().as_deref(),
+                dirs::data_local_dir(),
+                &Self::home(),
+                cfg!(windows),
+            )
+            .into_iter()
+            .map(|home| if rest.is_empty() { home } else { home.join(rest) })
+            .collect();
+        }
+
         let mut candidates = vec![Self::home().join(relative)];
 
         if let Some(suffix) = relative.strip_prefix(".config/") {
@@ -142,6 +155,45 @@ impl ToolAdapter {
     pub fn has_path_override(&self) -> bool {
         self.override_skills_dir.is_some()
     }
+}
+
+/// `.hermes` or `.hermes/<rest>` → `Some(rest)`; anything else → `None`.
+fn hermes_relative_rest(relative: &str) -> Option<&str> {
+    let rest = relative.strip_prefix(".hermes")?;
+    if rest.is_empty() {
+        Some("")
+    } else {
+        rest.strip_prefix('/')
+    }
+}
+
+/// Hermes Agent's home directory candidates, most authoritative first. Mirrors
+/// `get_hermes_home()` in hermes-agent's `hermes_constants.py`: the
+/// `HERMES_HOME` env var, then the platform default — `%LOCALAPPDATA%\hermes`
+/// on Windows, `~/.hermes` elsewhere — each with `HERMES_DATA_DIR_SUFFIX`.
+/// On Windows `~/.hermes` is kept as a last fallback for older installs.
+fn hermes_home_candidates(
+    env_home: Option<&str>,
+    suffix: Option<&str>,
+    local_data_dir: Option<PathBuf>,
+    home: &std::path::Path,
+    windows: bool,
+) -> Vec<PathBuf> {
+    let suffix = suffix.unwrap_or("");
+    let mut out = Vec::new();
+    if let Some(env) = env_home.map(str::trim).filter(|s| !s.is_empty()) {
+        out.push(match env.strip_prefix("~") {
+            Some(rest) => home.join(rest.trim_start_matches(['/', '\\'])),
+            None => PathBuf::from(env),
+        });
+    }
+    if windows {
+        let base = local_data_dir.unwrap_or_else(|| home.join("AppData").join("Local"));
+        out.push(base.join(format!("hermes{suffix}")));
+    }
+    out.push(home.join(format!(".hermes{suffix}")));
+    out.dedup();
+    out
 }
 
 pub fn default_tool_adapters() -> Vec<ToolAdapter> {
@@ -951,8 +1003,43 @@ pub fn enabled_installed_adapters(
 mod tests {
     use super::{
         CustomToolDef, ToolCategory, all_tool_adapters, default_tool_adapters,
-        find_adapter_with_store,
+        find_adapter_with_store, hermes_home_candidates, hermes_relative_rest,
     };
+
+    #[test]
+    fn hermes_relative_paths_are_recognized_exactly() {
+        assert_eq!(hermes_relative_rest(".hermes"), Some(""));
+        assert_eq!(hermes_relative_rest(".hermes/skills"), Some("skills"));
+        assert_eq!(hermes_relative_rest(".hermesfoo/skills"), None);
+        assert_eq!(hermes_relative_rest(".claude/skills"), None);
+    }
+
+    #[test]
+    fn hermes_home_follows_hermes_own_resolution_order() {
+        use std::path::PathBuf;
+        let home = PathBuf::from("/home/u");
+        let local = Some(PathBuf::from("/appdata/local"));
+
+        // Windows: %LOCALAPPDATA%\hermes first, ~/.hermes only as a fallback.
+        assert_eq!(
+            hermes_home_candidates(None, None, local.clone(), &home, true),
+            vec![PathBuf::from("/appdata/local/hermes"), home.join(".hermes")]
+        );
+        // Other platforms: ~/.hermes.
+        assert_eq!(
+            hermes_home_candidates(None, None, local.clone(), &home, false),
+            vec![home.join(".hermes")]
+        );
+        // HERMES_HOME wins, `~` expands, blank is ignored; the suffix applies to defaults.
+        assert_eq!(
+            hermes_home_candidates(Some("~/custom"), Some("-dev"), local.clone(), &home, false),
+            vec![home.join("custom"), home.join(".hermes-dev")]
+        );
+        assert_eq!(
+            hermes_home_candidates(Some("  "), None, local, &home, false),
+            vec![home.join(".hermes")]
+        );
+    }
     use crate::core::skill_store::SkillStore;
 
     use tempfile::tempdir;

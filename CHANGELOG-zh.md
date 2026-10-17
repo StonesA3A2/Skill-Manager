@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.6] - 2026-10-17
+
+### 发布概览
+- 修复补丁：Windows 上能识别 Hermes Agent，技能会部署到 Hermes 实际读取的目录。
+
+### 用户可见更新
+- Hermes Agent 在 Windows 上现在显示为已安装。此前 Skills Manager 在 `~/.hermes` 中查找，但 Windows 上的 Hermes 数据位于 `%LOCALAPPDATA%\hermes`，因此被报告为缺失，部署也写入了 Hermes 从不读取的目录。
+- 目录解析遵循 Hermes 自身的规则：若设置了 `HERMES_HOME` 环境变量则优先使用，否则 Windows 使用 `%LOCALAPPDATA%\hermes`，macOS/Linux 使用 `~/.hermes`（包括 `HERMES_DATA_DIR_SUFFIX`）。在 Windows 上，已存在的 `~/.hermes` 仍作为最后的备选。
+
+### 开发者与治理更新
+- `src-tauri/src/core/tool_adapters.rs`：`.hermes` 下的路径通过 `hermes_home_candidates()` 解析，该函数对应 hermes-agent 中 `hermes_constants.py` 的 `get_hermes_home()`。其他代理不变；项目级 `.hermes/skills` 路径不受影响。
+- 新增两个单元测试，覆盖解析顺序、`~` 展开、数据目录后缀以及空的 `HERMES_HOME`。已检查：`core::tool_adapters`、`core::project_scanner`、`core::file_watcher` 的 `cargo test`，以及新构建的 CLI 报告 Hermes 已安装于 `%LOCALAPPDATA%\hermes\skills`。尚未验证通过应用向 Hermes 部署技能。
+- 注意：部署是扁平结构（`skills\<name>`），而 Hermes 自带技能位于分类目录中；手动复制到分类目录且又由应用部署的技能会出现两份。
+
 ## [0.5.5] - 2026-10-17
 
 ### 发布概览
