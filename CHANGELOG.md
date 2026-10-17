@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-10-17
+
+### Release Overview
+- Patch release: semi-transparent backgrounds, borders and hover highlights that were defined in the UI but never rendered now appear.
+
+### User-facing
+- 25 places in 14 files (dialogs, command palette, sidebar, skill detail panel, diff viewer, sync status dots, and the library, install and project views) now show their intended semi-transparent backgrounds, borders and hover rings. They were in the code all along but produced no CSS, so these spots looked flatter than designed.
+- No other visual change: every existing color is unchanged in light and dark mode.
+
+### Developer & Governance
+- Root cause: theme colors in `tailwind.config.js` were plain `var(--color-x)` values. Tailwind 3 cannot apply opacity modifiers to those, so classes like `bg-surface/70` or `bg-accent/20` silently generated nothing.
+- `src/index.css`: color tokens are now RGB channels (`--color-x-rgb: r g b`); the old `--color-x` variables remain as `rgb(var(--color-x-rgb))`, so direct `var(--color-x)` uses keep working. `--color-accent-bg`, `--color-accent-border` and `--color-danger-bg` are derived from their base color with their fixed alpha.
+- `tailwind.config.js`: tokens use `rgb(var(--color-x-rgb) / <alpha-value>)`; the three tinted tokens use a function color that stays the plain variable without a modifier and scales the built-in alpha with one (no `calc()` inside `rgb()`).
+- Checked: CSS compiled before and after — no selector lost, exactly the 13 previously dead classes added; computed colors compared in Chromium for light and dark theme (identical to before, modifiers and direct variables correct); `tsc` and ESLint clean. Not yet checked visually in the running app or in the Linux webview.
+
 ## [0.5.4] - 2026-10-17
 
 ### Release Overview

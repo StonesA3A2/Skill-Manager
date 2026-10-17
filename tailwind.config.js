@@ -1,3 +1,16 @@
+// Tokens are RGB channels so opacity modifiers (`bg-surface/70`) compile; with a
+// plain `var(--color-x)` Tailwind 3 silently generates nothing for them.
+const token = (name) => `rgb(var(--color-${name}-rgb) / <alpha-value>)`;
+// Tokens that carry their own transparency (`--color-accent-bg` = accent at 8%).
+// Without a modifier they stay the plain variable, exactly as before; a modifier
+// scales the built-in alpha, computed here so the CSS needs no calc() in rgb().
+const tinted = (name, base, alpha) => ({ opacityValue }) => {
+  const scale = Number(opacityValue);
+  return opacityValue !== undefined && Number.isFinite(scale)
+    ? `rgb(var(--color-${base}-rgb) / ${Number((scale * alpha).toFixed(4))})`
+    : `var(--color-${name})`;
+};
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -8,24 +21,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: 'var(--color-bg)',
-        'bg-secondary': 'var(--color-bg-secondary)',
-        surface: 'var(--color-surface)',
-        'surface-hover': 'var(--color-surface-hover)',
-        'surface-active': 'var(--color-surface-active)',
-        border: 'var(--color-border)',
-        'border-subtle': 'var(--color-border-subtle)',
-        'border-faint': 'var(--color-border-faint)',
+        background: token('bg'),
+        'bg-secondary': token('bg-secondary'),
+        surface: token('surface'),
+        'surface-hover': token('surface-hover'),
+        'surface-active': token('surface-active'),
+        border: token('border'),
+        'border-subtle': token('border-subtle'),
+        'border-faint': token('border-faint'),
         accent: {
-          DEFAULT: 'var(--color-accent)',
-          light: 'var(--color-accent-light)',
-          dark: 'var(--color-accent-dark)',
-          bg: 'var(--color-accent-bg)',
-          border: 'var(--color-accent-border)',
+          DEFAULT: token('accent'),
+          light: token('accent-light'),
+          dark: token('accent-dark'),
+          bg: tinted('accent-bg', 'accent', 0.08),
+          border: tinted('accent-border', 'accent', 0.25),
         },
         danger: {
-          DEFAULT: 'var(--color-danger)',
-          bg: 'var(--color-danger-bg)',
+          DEFAULT: token('danger'),
+          bg: tinted('danger-bg', 'danger', 0.08),
         },
       },
       boxShadow: {
@@ -33,11 +46,11 @@ export default {
         'card-hover': 'var(--shadow-card-hover)',
       },
       textColor: {
-        primary: 'var(--color-text-primary)',
-        secondary: 'var(--color-text-secondary)',
-        tertiary: 'var(--color-text-tertiary)',
-        muted: 'var(--color-text-muted)',
-        faint: 'var(--color-text-faint)',
+        primary: token('text-primary'),
+        secondary: token('text-secondary'),
+        tertiary: token('text-tertiary'),
+        muted: token('text-muted'),
+        faint: token('text-faint'),
       },
       fontFamily: {
         sans: [

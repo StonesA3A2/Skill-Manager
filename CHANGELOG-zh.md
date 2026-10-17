@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.5] - 2026-10-17
+
+### 发布概览
+- 修复补丁：界面中已定义但从未生效的半透明背景、边框和悬停高亮现在会正常显示。
+
+### 用户可见更新
+- 14 个文件中的 25 处（对话框、命令面板、侧边栏、技能详情面板、差异视图、同步状态圆点，以及技能库、安装和项目视图）现在会显示预期的半透明背景、边框和悬停描边。这些样式一直在代码中，但从未生成 CSS，因此这些位置看起来比设计更平淡。
+- 没有其他视觉变化：所有现有颜色在亮色和暗色模式下均保持不变。
+
+### 开发者与治理更新
+- 根因：`tailwind.config.js` 中的主题色为纯 `var(--color-x)` 值。Tailwind 3 无法对其应用透明度修饰符，因此 `bg-surface/70`、`bg-accent/20` 等类名静默地不生成任何 CSS。
+- `src/index.css`：颜色变量改为 RGB 通道（`--color-x-rgb: r g b`）；原有 `--color-x` 变量保留为 `rgb(var(--color-x-rgb))`，直接使用 `var(--color-x)` 的地方继续有效。`--color-accent-bg`、`--color-accent-border` 和 `--color-danger-bg` 由基础色加固定透明度派生。
+- `tailwind.config.js`：颜色使用 `rgb(var(--color-x-rgb) / <alpha-value>)`；三个带透明度的颜色使用函数式颜色：无修饰符时保持原变量，有修饰符时按比例缩放其自带透明度（`rgb()` 中不使用 `calc()`）。
+- 已检查：修改前后分别编译 CSS——没有选择器丢失，恰好新增 13 个此前无效的类；在 Chromium 中对比亮色与暗色主题的计算颜色（与之前一致，修饰符和直接变量均正确）；`tsc` 与 ESLint 无问题。尚未在运行中的应用或 Linux WebView 中进行视觉检查。
+
 ## [0.5.4] - 2026-10-17
 
 ### 发布概览
